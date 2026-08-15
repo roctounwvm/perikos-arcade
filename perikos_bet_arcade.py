@@ -2367,13 +2367,32 @@ HTML_ADMIN = CSS + """
 PANEL ADMIN PERIKO
 </h1>
 
+<div class="badge">
+👑 ADMINISTRADOR SUPREMO
+</div>
+
 {% if mensaje %}
 <div class="msg">
 {{ mensaje }}
 </div>
 {% endif %}
 
-<form method="POST">
+
+<!-- ============================= -->
+<!-- REGALAR PERIKOINS -->
+<!-- ============================= -->
+
+<div class="chest">
+
+<h2 style="color:#00ffcc;font-size:10px;">
+🎁 REGALAR PERIKOINS
+</h2>
+
+<p style="font-size:7px;color:#aaa;line-height:1.7;">
+Envía Perikoins directamente a cualquier jugador.
+</p>
+
+<form method="POST" action="/admin">
 
 <label>GAMER TAG DEL DESTINATARIO</label>
 
@@ -2392,14 +2411,82 @@ min="1"
 required
 >
 
-<button class="btn btn-green" type="submit">
-REGALAR PERIKOINS
+<button
+class="btn btn-green"
+type="submit"
+>
+🎁 REGALAR PERIKOINS
 </button>
 
 </form>
 
+</div>
+
+
+<!-- ============================= -->
+<!-- ELIMINAR CUENTA -->
+<!-- ============================= -->
+
+<div class="chest" style="border-color:#ff0000;">
+
+<h2 style="color:#ff0000;font-size:10px;">
+🗑️ ELIMINAR CUENTA
+</h2>
+
+<p style="font-size:7px;color:#aaa;line-height:1.7;">
+ESTA ACCION ES PERMANENTE.<br>
+LA CUENTA Y SUS DATOS SERAN ELIMINADOS.
+</p>
+
+<form
+method="POST"
+action="/admin/eliminar"
+onsubmit="return confirm(
+    '⚠️ ¿ESTAS SEGURO DE ELIMINAR ESTA CUENTA?\\n\\nEsta accion NO se puede deshacer.'
+);"
+>
+
+<label>GAMER TAG A ELIMINAR</label>
+
+<input
+name="destino"
+maxlength="30"
+required
+>
+
+<button
+class="btn btn-red"
+type="submit"
+>
+🗑️ ELIMINAR CUENTA
+</button>
+
+</form>
+
+</div>
+
+
+<!-- ============================= -->
+<!-- INFORMACION DEL PANEL -->
+<!-- ============================= -->
+
+<div class="chest" style="border-color:#ffff00;">
+
+<h2 style="color:#ffff00;font-size:10px;">
+⚡ FUNCIONES ADMIN
+</h2>
+
+<p style="font-size:7px;color:#aaa;line-height:1.8;">
+🎁 REGALAR PERIKOINS<br>
+🗑️ ELIMINAR CUENTAS<br>
+👑 CONTROL TOTAL DEL ARCADE
+</p>
+
+</div>
+
+
 <a class="link" href="/menu">
-< VOLVER
+< VOLVER AL MENU
 </a>
 
 </div>
@@ -2407,7 +2494,6 @@ REGALAR PERIKOINS
 </body>
 </html>
 """
-
 
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
@@ -2481,6 +2567,78 @@ def admin():
         mensaje=mensaje
     )
 
+@app.route("/admin/eliminar", methods=["POST"])
+def admin_eliminar():
+
+    usuario = usuario_actual()
+
+    if not usuario:
+        return redirect(url_for("login"))
+
+    if usuario["username"].lower() != "periko":
+        return redirect(url_for("menu"))
+
+    destino = request.form.get(
+        "destino",
+        ""
+    ).strip()
+
+    if not destino:
+        return render_template_string(
+            HTML_ADMIN,
+            mensaje="Debes indicar un usuario."
+        )
+
+    if destino.lower() == "periko":
+        return render_template_string(
+            HTML_ADMIN,
+            mensaje="No puedes eliminar la cuenta PERIKO."
+        )
+
+    db = get_db()
+
+    try:
+
+        with db.cursor() as cur:
+
+            cur.execute(
+                """
+                DELETE FROM usuarios
+                WHERE username = %s
+                """,
+                (destino,)
+            )
+
+            if cur.rowcount == 0:
+                db.rollback()
+
+                mensaje = (
+                    f"El usuario {destino} no existe."
+                )
+
+            else:
+                db.commit()
+
+                mensaje = (
+                    f"La cuenta {destino} "
+                    "fue eliminada correctamente."
+                )
+
+    except Exception as e:
+
+        db.rollback()
+
+        print("ERROR AL ELIMINAR CUENTA:", e)
+
+        mensaje = (
+            "Ocurrio un error al eliminar "
+            "la cuenta."
+        )
+
+    return render_template_string(
+        HTML_ADMIN,
+        mensaje=mensaje
+    )
 
 @app.route("/logout")
 def logout():
