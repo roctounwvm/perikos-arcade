@@ -5,21 +5,8 @@ from datetime import datetime, timedelta
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from flask import (
-    Flask,
-    render_template_string,
-    request,
-    redirect,
-    url_for,
-    session,
-    g
-)
+from flask import Flask, render_template_string, request, redirect, url_for, session, g
 from werkzeug.security import generate_password_hash, check_password_hash
-
-
-# ============================================================
-# CONFIGURACION
-# ============================================================
 
 app = Flask(__name__)
 
@@ -33,14 +20,7 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 if not DATABASE_URL:
     print("ADVERTENCIA: DATABASE_URL no esta configurada.")
 
-
-# ============================================================
-# AVATARES
-# ============================================================
-
 AVATARES_DB = {
-
-    # COMUNES
     1: {"nombre": "Robot Píxel", "rareza": "COMUN", "color": "#888888", "icon": "🤖"},
     2: {"nombre": "Fantasma Retro", "rareza": "COMUN", "color": "#888888", "icon": "👻"},
     3: {"nombre": "Champiñón Verde", "rareza": "COMUN", "color": "#888888", "icon": "🍄"},
@@ -60,7 +40,6 @@ AVATARES_DB = {
     17: {"nombre": "Estrella Simple", "rareza": "COMUN", "color": "#888888", "icon": "⭐"},
     18: {"nombre": "Calavera Píxel", "rareza": "COMUN", "color": "#888888", "icon": "💀"},
 
-    # RAROS
     19: {"nombre": "Mago Azul", "rareza": "RARO", "color": "#0088ff", "icon": "🧙‍♂️"},
     20: {"nombre": "Caballero de Hierro", "rareza": "RARO", "color": "#0088ff", "icon": "⚔️"},
     21: {"nombre": "Ninja de la Sombra", "rareza": "RARO", "color": "#0088ff", "icon": "🥷"},
@@ -76,7 +55,6 @@ AVATARES_DB = {
     31: {"nombre": "Pirata Píxel", "rareza": "RARO", "color": "#0088ff", "icon": "🏴‍☠️"},
     32: {"nombre": "Vikingo del Trueno", "rareza": "RARO", "color": "#0088ff", "icon": "🪓"},
 
-    # LEGENDARIOS
     33: {"nombre": "Fénix Dorado", "rareza": "LEGENDARIO", "color": "#ff00ff", "icon": "🦅"},
     34: {"nombre": "Mecha Titán", "rareza": "LEGENDARIO", "color": "#ff00ff", "icon": "🤖"},
     35: {"nombre": "Demonio Neón", "rareza": "LEGENDARIO", "color": "#ff00ff", "icon": "👿"},
@@ -88,32 +66,22 @@ AVATARES_DB = {
     41: {"nombre": "Dios del Rayo", "rareza": "LEGENDARIO", "color": "#ff00ff", "icon": "⚡"},
     42: {"nombre": "Golem de Cristal", "rareza": "LEGENDARIO", "color": "#ff00ff", "icon": "💎"},
 
-    # MITICOS
     43: {"nombre": "Periko Cósmico", "rareza": "MITICO", "color": "#ff0055", "icon": "🌌"},
     44: {"nombre": "Emperador Oscuro", "rareza": "MITICO", "color": "#ff0055", "icon": "👺"},
     45: {"nombre": "Dios del Caos", "rareza": "MITICO", "color": "#ff0055", "icon": "🔥"},
     46: {"nombre": "Valquiria Carmesí", "rareza": "MITICO", "color": "#ff0055", "icon": "💃"},
     47: {"nombre": "Ente Cuántico", "rareza": "MITICO", "color": "#ff0055", "icon": "⚛️"},
 
-    # SECRETOS
     48: {"nombre": "El Creador Periko", "rareza": "SECRETO", "color": "#ffff00", "icon": "👁️‍🗨️"},
     49: {"nombre": "Entidad Glitch 404", "rareza": "SECRETO", "color": "#ffff00", "icon": "👾"},
     50: {"nombre": "Periko Absoluto", "rareza": "SECRETO", "color": "#ffff00", "icon": "👑"}
 }
 
 
-# ============================================================
-# BASE DE DATOS POSTGRESQL
-# ============================================================
-
 def get_db():
-
     if "db" not in g:
-
         if not DATABASE_URL:
-            raise RuntimeError(
-                "DATABASE_URL no esta configurada."
-            )
+            raise RuntimeError("DATABASE_URL no esta configurada.")
 
         g.db = psycopg2.connect(
             DATABASE_URL,
@@ -126,24 +94,15 @@ def get_db():
 
 @app.teardown_appcontext
 def close_db(exception=None):
-
     db = g.pop("db", None)
 
     if db is not None:
         db.close()
 
 
-# ============================================================
-# INICIALIZAR BASE DE DATOS
-# ============================================================
-
 def init_db():
-
     if not DATABASE_URL:
-        print(
-            "DATABASE_URL no configurada. "
-            "La base de datos no puede inicializarse."
-        )
+        print("DATABASE_URL no configurada. La base de datos no puede inicializarse.")
         return
 
     conn = psycopg2.connect(
@@ -153,9 +112,7 @@ def init_db():
     )
 
     try:
-
         with conn.cursor() as cur:
-
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS usuarios (
                     id BIGSERIAL PRIMARY KEY,
@@ -186,16 +143,10 @@ def init_db():
         conn.close()
 
 
-# ============================================================
-# UTILIDADES
-# ============================================================
-
 def obtener_usuario(username):
-
     db = get_db()
 
     with db.cursor(cursor_factory=RealDictCursor) as cur:
-
         cur.execute(
             """
             SELECT *
@@ -209,12 +160,10 @@ def obtener_usuario(username):
 
 
 def calcular_apuesta_monto(valor, saldo_actual):
-
     if valor == "ALLIN":
         return saldo_actual
 
     try:
-
         monto = int(valor)
 
         if monto <= 0:
@@ -227,11 +176,9 @@ def calcular_apuesta_monto(valor, saldo_actual):
 
 
 def actualizar_saldo(username, nuevo_saldo):
-
     db = get_db()
 
     with db.cursor() as cur:
-
         cur.execute(
             """
             UPDATE usuarios
@@ -245,24 +192,17 @@ def actualizar_saldo(username, nuevo_saldo):
 
 
 def cargar_avatares(valor):
-
     if isinstance(valor, list):
         return valor
 
     if isinstance(valor, str):
-
         try:
             return json.loads(valor)
-
         except Exception:
             return [1]
 
     return [1]
 
-
-# ============================================================
-# CSS
-# ============================================================
 
 CSS = """
 <!DOCTYPE html>
@@ -278,8 +218,8 @@ rel="stylesheet">
 <style>
 
 * {
-    box-sizing: border-box;
-    font-family: 'Press Start 2P', cursive;
+    box-sizing:border-box;
+    font-family:'Press Start 2P',cursive;
 }
 
 body {
@@ -349,10 +289,17 @@ button {
     margin-top:8px;
     text-decoration:none;
     display:block;
+    transition:transform .15s ease,filter .15s ease,box-shadow .15s ease;
 }
 
 .btn:hover {
     filter:brightness(1.3);
+    transform:translateY(-3px) scale(1.02);
+    box-shadow:0 0 15px currentColor;
+}
+
+.btn:active {
+    transform:translateY(2px) scale(.98);
 }
 
 .btn-yellow {
@@ -388,6 +335,7 @@ button {
     font-size:8px;
     line-height:1.6;
     margin:12px 0;
+    animation:messageAppear .35s ease-out;
 }
 
 .win {
@@ -399,6 +347,7 @@ button {
     font-size:9px;
     line-height:1.6;
     margin:15px 0;
+    animation:winAppear .45s ease-out;
 }
 
 .grid {
@@ -415,6 +364,17 @@ button {
     border-radius:5px;
     cursor:pointer;
     font-size:7px;
+    transition:transform .15s ease,filter .15s ease,box-shadow .15s ease;
+}
+
+.chip:hover {
+    transform:translateY(-3px) scale(1.02);
+    filter:brightness(1.25);
+    box-shadow:0 0 15px #00ffcc;
+}
+
+.chip:active {
+    transform:translateY(2px) scale(.98);
 }
 
 .allin {
@@ -426,6 +386,17 @@ button {
     border-radius:5px;
     cursor:pointer;
     font-size:8px;
+    transition:transform .15s ease,filter .15s ease,box-shadow .15s ease;
+}
+
+.allin:hover {
+    transform:translateY(-3px) scale(1.02);
+    filter:brightness(1.25);
+    box-shadow:0 0 15px #ff0055;
+}
+
+.allin:active {
+    transform:translateY(2px) scale(.98);
 }
 
 .link {
@@ -439,6 +410,7 @@ button {
 .game-icon {
     font-size:55px;
     margin:15px;
+    animation:arcadePulse 1.5s infinite;
 }
 
 .slots {
@@ -481,6 +453,7 @@ button {
     border-radius:7px;
     font-size:6px;
     cursor:pointer;
+    transition:transform .15s ease,filter .15s ease,box-shadow .15s ease;
 }
 
 .avatar-item.active {
@@ -542,15 +515,141 @@ td {
     transition:width 4s ease;
 }
 
+.race {
+    margin:20px 0;
+    text-align:left;
+}
+
+.race-title {
+    color:#ffff00;
+    font-size:8px;
+    text-align:center;
+    margin-bottom:15px;
+    animation:arcadePulse 1s infinite;
+}
+
+.racer {
+    margin:12px 0;
+}
+
+.racer-name {
+    font-size:7px;
+    margin-bottom:5px;
+    color:#fff;
+}
+
+.race-track {
+    position:relative;
+    height:38px;
+    background:#080808;
+    border:2px solid #00ffcc;
+    border-radius:7px;
+    overflow:hidden;
+}
+
+.race-finish {
+    position:absolute;
+    right:5px;
+    top:0;
+    bottom:0;
+    width:5px;
+    background:#ffff00;
+    box-shadow:0 0 10px #ffff00;
+    z-index:1;
+}
+
+.race-runner {
+    position:absolute;
+    left:0;
+    top:50%;
+    transform:translateY(-50%);
+    font-size:22px;
+    z-index:2;
+    transition:left 4s cubic-bezier(.15,.8,.2,1);
+}
+
+.race-glow {
+    position:absolute;
+    left:0;
+    top:0;
+    bottom:0;
+    width:0%;
+    opacity:.18;
+    transition:width 4s cubic-bezier(.15,.8,.2,1);
+}
+
+.racer.winner .race-track {
+    border-color:#ffff00;
+    box-shadow:0 0 15px #ffff00;
+}
+
+.racer.winner .race-runner {
+    animation:winnerBounce .35s infinite alternate;
+}
+
+.race-result {
+    display:none;
+    margin-top:20px;
+    padding:15px;
+    border:2px dashed #ffff00;
+    color:#ffff00;
+    text-align:center;
+    animation:winAppear .5s ease-out;
+}
+
+@keyframes arcadePulse {
+    0%,100% {
+        transform:scale(1);
+    }
+
+    50% {
+        transform:scale(1.12);
+    }
+}
+
+@keyframes winAppear {
+    0% {
+        opacity:0;
+        transform:scale(.7);
+    }
+
+    70% {
+        transform:scale(1.08);
+    }
+
+    100% {
+        opacity:1;
+        transform:scale(1);
+    }
+}
+
+@keyframes messageAppear {
+    from {
+        opacity:0;
+        transform:translateY(-10px);
+    }
+
+    to {
+        opacity:1;
+        transform:translateY(0);
+    }
+}
+
+@keyframes winnerBounce {
+    from {
+        transform:translateY(-50%) scale(1);
+    }
+
+    to {
+        transform:translateY(-50%) scale(1.25);
+    }
+}
+
 </style>
 </head>
 <body>
 """
 
-
-# ============================================================
-# REGISTRO
-# ============================================================
 
 HTML_REGISTRO = CSS + """
 
@@ -594,26 +693,17 @@ YA TIENES CUENTA? ENTRA AQUI
 
 @app.route("/", methods=["GET", "POST"])
 def registro():
-
     if request.method == "POST":
-
-        username = request.form.get(
-            "username", ""
-        ).strip()
-
-        password = request.form.get(
-            "password", ""
-        )
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
 
         if not username or not password:
-
             return render_template_string(
                 HTML_REGISTRO,
                 error="Completa todos los campos."
             )
 
         if len(username) > 30:
-
             return render_template_string(
                 HTML_REGISTRO,
                 error="El usuario es demasiado largo."
@@ -622,9 +712,7 @@ def registro():
         db = get_db()
 
         try:
-
             with db.cursor() as cur:
-
                 cur.execute(
                     """
                     INSERT INTO usuarios
@@ -651,7 +739,6 @@ def registro():
             return redirect(url_for("menu"))
 
         except psycopg2.errors.UniqueViolation:
-
             db.rollback()
 
             return render_template_string(
@@ -659,20 +746,11 @@ def registro():
                 error="Ese Gamer Tag ya existe."
             )
 
-    # ========================================================
-    # CORRECCION:
-    # Antes faltaba un return cuando la pagina era GET.
-    # ========================================================
-
     return render_template_string(
         HTML_REGISTRO,
         error=None
     )
 
-
-# ============================================================
-# LOGIN
-# ============================================================
 
 HTML_LOGIN = CSS + """
 
@@ -715,16 +793,9 @@ NO TIENES CUENTA? REGISTRATE
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-
     if request.method == "POST":
-
-        username = request.form.get(
-            "username", ""
-        ).strip()
-
-        password = request.form.get(
-            "password", ""
-        )
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
 
         usuario = obtener_usuario(username)
 
@@ -735,7 +806,6 @@ def login():
                 password
             )
         ):
-
             session.clear()
             session["user"] = username
 
@@ -749,21 +819,12 @@ def login():
     return render_template_string(HTML_LOGIN)
 
 
-# ============================================================
-# REQUIERE LOGIN
-# ============================================================
-
 def usuario_actual():
-
     if "user" not in session:
         return None
 
     return obtener_usuario(session["user"])
 
-
-# ============================================================
-# MENU
-# ============================================================
 
 HTML_MENU = CSS + """
 
@@ -838,11 +899,9 @@ SELECCIONA UN JUEGO
 </a>
 
 {% if es_admin %}
-
 <a class="btn btn-red" href="/admin">
 PANEL ADMIN PERIKO
 </a>
-
 {% endif %}
 
 <a class="link" href="/logout">
@@ -858,7 +917,6 @@ PANEL ADMIN PERIKO
 
 @app.route("/menu")
 def menu():
-
     usuario = usuario_actual()
 
     if not usuario:
@@ -867,11 +925,9 @@ def menu():
     regalo = usuario["notif_regalo"]
 
     if regalo and regalo > 0:
-
         db = get_db()
 
         with db.cursor() as cur:
-
             cur.execute(
                 """
                 UPDATE usuarios
@@ -899,10 +955,6 @@ def menu():
     )
 
 
-# ============================================================
-# MOTOR DE JUEGOS
-# ============================================================
-
 def procesar_apuesta(
     usuario,
     apuesta,
@@ -911,13 +963,9 @@ def procesar_apuesta(
     mensaje_gana,
     mensaje_pierde
 ):
-
     db = get_db()
 
-    with db.cursor(
-        cursor_factory=RealDictCursor
-    ) as cur:
-
+    with db.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute(
             """
             SELECT *
@@ -945,17 +993,10 @@ def procesar_apuesta(
             return False, "Saldo insuficiente."
 
         if ganado:
-
-            nuevo_saldo = (
-                saldo + (apuesta * multiplicador)
-            )
-
+            nuevo_saldo = saldo + (apuesta * multiplicador)
             mensaje = mensaje_gana
-
         else:
-
             nuevo_saldo = saldo - apuesta
-
             mensaje = mensaje_pierde
 
         cur.execute(
@@ -974,10 +1015,6 @@ def procesar_apuesta(
 
     return ganado, mensaje
 
-
-# ============================================================
-# TEMPLATE JUEGO
-# ============================================================
 
 HTML_JUEGO = CSS + """
 
@@ -1031,11 +1068,9 @@ RESULTADO:<br><br>
 <select name="{{ nombre_opciones }}">
 
 {% for valor, texto in opciones %}
-
 <option value="{{ valor }}">
 {{ texto }}
 </option>
-
 {% endfor %}
 
 </select>
@@ -1081,13 +1116,8 @@ ALL IN
 """
 
 
-# ============================================================
-# DADOS
-# ============================================================
-
 @app.route("/juego/dados", methods=["GET", "POST"])
 def dados():
-
     usuario = usuario_actual()
 
     if not usuario:
@@ -1098,33 +1128,23 @@ def dados():
     victoria = False
 
     if request.method == "POST":
-
         apuesta = calcular_apuesta_monto(
             request.form.get("apuesta"),
             usuario["perikoins"]
         )
 
         try:
-            elegido = int(
-                request.form.get("numero", 1)
-            )
+            elegido = int(request.form.get("numero", 1))
         except ValueError:
             elegido = 0
 
         if elegido < 1 or elegido > 6:
-
             mensaje = "Numero invalido."
-
         else:
-
             resultado = random.randint(1, 6)
-
-            victoria = (
-                resultado == elegido
-            )
+            victoria = resultado == elegido
 
             if victoria:
-
                 ganancia = apuesta * 5
 
                 mensaje = (
@@ -1140,9 +1160,7 @@ def dados():
                     mensaje,
                     ""
                 )
-
             else:
-
                 mensaje = (
                     f"PERDISTE. Salio {resultado}. "
                     f"Perdiste {apuesta} Perikoins."
@@ -1157,9 +1175,7 @@ def dados():
                     mensaje
                 )
 
-            usuario = obtener_usuario(
-                session["user"]
-            )
+            usuario = obtener_usuario(session["user"])
 
     return render_template_string(
         HTML_JUEGO,
@@ -1179,13 +1195,8 @@ def dados():
     )
 
 
-# ============================================================
-# MONEDA
-# ============================================================
-
 @app.route("/juego/moneda", methods=["GET", "POST"])
 def moneda():
-
     usuario = usuario_actual()
 
     if not usuario:
@@ -1196,26 +1207,18 @@ def moneda():
     victoria = False
 
     if request.method == "POST":
-
         apuesta = calcular_apuesta_monto(
             request.form.get("apuesta"),
             usuario["perikoins"]
         )
 
-        eleccion = request.form.get(
-            "eleccion"
-        )
+        eleccion = request.form.get("eleccion")
 
         if eleccion not in ["CARA", "CRUZ"]:
-
             mensaje = "Eleccion invalida."
-
         else:
-
             if random.random() < 0.01:
-
                 resultado = "CANTO"
-
                 ganancia = apuesta * 10
 
                 mensaje = (
@@ -1231,19 +1234,11 @@ def moneda():
                     mensaje,
                     ""
                 )
-
             else:
-
-                resultado = random.choice(
-                    ["CARA", "CRUZ"]
-                )
-
-                victoria = (
-                    resultado == eleccion
-                )
+                resultado = random.choice(["CARA", "CRUZ"])
+                victoria = resultado == eleccion
 
                 if victoria:
-
                     ganancia = apuesta * 2
 
                     mensaje = (
@@ -1259,9 +1254,7 @@ def moneda():
                         mensaje,
                         ""
                     )
-
                 else:
-
                     mensaje = (
                         f"PERDISTE. Salio {resultado}. "
                         f"Perdiste {apuesta} Perikoins."
@@ -1276,9 +1269,7 @@ def moneda():
                         mensaje
                     )
 
-            usuario = obtener_usuario(
-                session["user"]
-            )
+            usuario = obtener_usuario(session["user"])
 
     return render_template_string(
         HTML_JUEGO,
@@ -1297,13 +1288,8 @@ def moneda():
     )
 
 
-# ============================================================
-# RULETA
-# ============================================================
-
 @app.route("/juego/ruleta", methods=["GET", "POST"])
 def ruleta():
-
     usuario = usuario_actual()
 
     if not usuario:
@@ -1324,15 +1310,12 @@ def ruleta():
     ]
 
     if request.method == "POST":
-
         apuesta = calcular_apuesta_monto(
             request.form.get("apuesta"),
             usuario["perikoins"]
         )
 
-        tipo = request.form.get(
-            "tipo_apuesta"
-        )
+        tipo = request.form.get("tipo_apuesta")
 
         resultado = random.randint(1, 6)
 
@@ -1343,29 +1326,18 @@ def ruleta():
         )
 
         if tipo in ["ROJO", "NEGRO"]:
-
-            victoria = (
-                tipo == color
-            )
-
+            victoria = tipo == color
             multiplicador = 2
-
         else:
-
             try:
-                victoria = (
-                    int(tipo) == resultado
-                )
+                victoria = int(tipo) == resultado
             except Exception:
                 victoria = False
 
             multiplicador = 5
 
         if victoria:
-
-            ganancia = (
-                apuesta * multiplicador
-            )
+            ganancia = apuesta * multiplicador
 
             mensaje = (
                 f"GANASTE! Salio {resultado} "
@@ -1381,9 +1353,7 @@ def ruleta():
                 mensaje,
                 ""
             )
-
         else:
-
             mensaje = (
                 f"PERDISTE. Salio {resultado} "
                 f"({color}). "
@@ -1399,9 +1369,7 @@ def ruleta():
                 mensaje
             )
 
-        usuario = obtener_usuario(
-            session["user"]
-        )
+        usuario = obtener_usuario(session["user"])
 
     return render_template_string(
         HTML_JUEGO,
@@ -1417,13 +1385,8 @@ def ruleta():
     )
 
 
-# ============================================================
-# CARTAS
-# ============================================================
-
 @app.route("/juego/cartas", methods=["GET", "POST"])
 def cartas():
-
     usuario = usuario_actual()
 
     if not usuario:
@@ -1434,44 +1397,27 @@ def cartas():
     victoria = False
 
     if "carta_base" not in session:
-
-        session["carta_base"] = random.randint(
-            2, 12
-        )
+        session["carta_base"] = random.randint(2, 12)
 
     carta_base = session["carta_base"]
 
     if request.method == "POST":
-
         apuesta = calcular_apuesta_monto(
             request.form.get("apuesta"),
             usuario["perikoins"]
         )
 
-        eleccion = request.form.get(
-            "eleccion"
-        )
-
+        eleccion = request.form.get("eleccion")
         resultado = random.randint(1, 13)
 
         if eleccion == "MAYOR":
-
-            victoria = (
-                resultado > carta_base
-            )
-
+            victoria = resultado > carta_base
         elif eleccion == "MENOR":
-
-            victoria = (
-                resultado < carta_base
-            )
-
+            victoria = resultado < carta_base
         else:
-
             victoria = False
 
         if victoria:
-
             ganancia = apuesta * 2
 
             mensaje = (
@@ -1488,9 +1434,7 @@ def cartas():
                 mensaje,
                 ""
             )
-
         else:
-
             mensaje = (
                 f"PERDISTE. Carta base {carta_base}, "
                 f"salio {resultado}. "
@@ -1508,10 +1452,7 @@ def cartas():
 
         session["carta_base"] = resultado
 
-        usuario = obtener_usuario(
-            session["user"]
-        )
-
+        usuario = obtener_usuario(session["user"])
         carta_base = resultado
 
     return render_template_string(
@@ -1535,13 +1476,8 @@ def cartas():
     )
 
 
-# ============================================================
-# SLOTS
-# ============================================================
-
 @app.route("/juego/slots", methods=["GET", "POST"])
 def slots():
-
     usuario = usuario_actual()
 
     if not usuario:
@@ -1552,7 +1488,6 @@ def slots():
     victoria = False
 
     if request.method == "POST":
-
         apuesta = calcular_apuesta_monto(
             request.form.get("apuesta"),
             usuario["perikoins"]
@@ -1572,7 +1507,6 @@ def slots():
         resultado = f"{r1} {r2} {r3}"
 
         if r1 == r2 == r3:
-
             multiplicadores = {
                 "🪙": 50,
                 "💎": 20,
@@ -1581,7 +1515,6 @@ def slots():
             }
 
             mult = multiplicadores[r1]
-
             ganancia = apuesta * mult
 
             mensaje = (
@@ -1598,12 +1531,7 @@ def slots():
                 ""
             )
 
-        elif (
-            r1 == r2
-            or r2 == r3
-            or r1 == r3
-        ):
-
+        elif r1 == r2 or r2 == r3 or r1 == r3:
             ganancia = apuesta * 2
 
             mensaje = (
@@ -1621,7 +1549,6 @@ def slots():
             )
 
         else:
-
             mensaje = (
                 f"SIN COINCIDENCIAS. "
                 f"Perdiste {apuesta} Perikoins."
@@ -1636,9 +1563,7 @@ def slots():
                 mensaje
             )
 
-        usuario = obtener_usuario(
-            session["user"]
-        )
+        usuario = obtener_usuario(session["user"])
 
     return render_template_string(
         HTML_JUEGO,
@@ -1651,13 +1576,170 @@ def slots():
     )
 
 
-# ============================================================
-# DERBY
-# ============================================================
+HTML_DERBY = CSS + """
+
+<div class="arcade-box">
+
+<h1>🏁 CARRERA DE PERIKOS 🏁</h1>
+
+<div class="badge">
+SALDO: {{ usuario.perikoins }} P
+</div>
+
+<p style="font-size:7px;color:#00ffcc">
+¡ELIGE TU PERIKO Y MIRA LA CARRERA!
+</p>
+
+{% if mensaje %}
+<div class="{% if victoria %}win{% else %}msg{% endif %}">
+{{ mensaje }}
+</div>
+{% endif %}
+
+<form method="POST">
+
+<label>ELIGE CORREDOR</label>
+
+<select name="corredor" required>
+
+{% for valor,texto in opciones %}
+
+<option value="{{ valor }}">
+{{ texto }}
+</option>
+
+{% endfor %}
+
+</select>
+
+<label>SELECCIONA TU APUESTA</label>
+
+<div class="grid">
+
+{% for cantidad in [10,50,100,250,500,1000] %}
+
+<button
+class="chip"
+name="apuesta"
+value="{{ cantidad }}"
+type="submit">
+{{ cantidad }}
+</button>
+
+{% endfor %}
+
+<button
+class="allin"
+name="apuesta"
+value="ALLIN"
+type="submit">
+ALL IN
+</button>
+
+</div>
+
+</form>
+
+{% if carrera %}
+
+<div class="race">
+
+<div class="race-title">
+🏁 ¡QUE COMIENCE LA CARRERA! 🏁
+</div>
+
+{% for corredor,data in carrera.items() %}
+
+<div
+class="racer {% if corredor == ganador %}winner{% endif %}"
+data-score="{{ data.score }}"
+>
+
+<div class="racer-name">
+{{ data.icon }} {{ data.nombre }}
+</div>
+
+<div class="race-track">
+
+<div
+class="race-glow"
+style="background:{{ data.color }}">
+</div>
+
+<div class="race-runner">
+{{ data.icon }}
+</div>
+
+<div class="race-finish"></div>
+
+</div>
+
+</div>
+
+{% endfor %}
+
+<div id="raceResult" class="race-result">
+🏆 ¡{{ carrera[ganador].nombre|upper }} GANÓ! 🏆
+</div>
+
+</div>
+
+<script>
+
+const racers = document.querySelectorAll(".racer");
+const result = document.getElementById("raceResult");
+
+racers.forEach((racer, index) => {
+
+    const score = Number(racer.dataset.score);
+
+    const runner = racer.querySelector(".race-runner");
+    const glow = racer.querySelector(".race-glow");
+
+    const duration = 3500 + ((100 - score) * 20);
+
+    setTimeout(() => {
+
+        runner.style.transition =
+            `left ${duration}ms cubic-bezier(.15,.8,.2,1)`;
+
+        glow.style.transition =
+            `width ${duration}ms cubic-bezier(.15,.8,.2,1)`;
+
+        runner.style.left = "calc(100% - 32px)";
+
+        glow.style.width =
+            Math.max(5, score - 5) + "%";
+
+    }, index * 120);
+
+});
+
+setTimeout(() => {
+
+    if (result) {
+        result.style.display = "block";
+    }
+
+}, 4300);
+
+</script>
+
+{% endif %}
+
+<a class="link" href="/menu">
+< VOLVER AL MENU
+</a>
+
+</div>
+
+</body>
+</html>
+"""
+
 
 @app.route("/juego/derby", methods=["GET", "POST"])
 def derby():
-
     usuario = usuario_actual()
 
     if not usuario:
@@ -1665,31 +1747,50 @@ def derby():
 
     mensaje = ""
     victoria = False
+    carrera = None
+    ganador = None
+
+    corredores = {
+        "ROJO": {
+            "nombre": "PERIKO ROJO",
+            "icon": "🔴",
+            "color": "#ff0033"
+        },
+        "VERDE": {
+            "nombre": "PERIKO VERDE",
+            "icon": "🟢",
+            "color": "#00ff66"
+        },
+        "AZUL": {
+            "nombre": "PERIKO AZUL",
+            "icon": "🔵",
+            "color": "#0088ff"
+        },
+        "DORADO": {
+            "nombre": "PERIKO DORADO",
+            "icon": "🟡",
+            "color": "#ffff00"
+        }
+    }
 
     if request.method == "POST":
-
         apuesta = calcular_apuesta_monto(
             request.form.get("apuesta"),
             usuario["perikoins"]
         )
 
-        corredor = request.form.get(
-            "corredor"
-        )
+        corredor_elegido = request.form.get("corredor")
 
-        validos = [
-            "ROJO",
-            "VERDE",
-            "AZUL",
-            "DORADO"
-        ]
-
-        if corredor not in validos:
-
+        if corredor_elegido not in corredores:
             mensaje = "Corredor invalido."
 
-        else:
+        elif apuesta <= 0:
+            mensaje = "Apuesta invalida."
 
+        elif apuesta > usuario["perikoins"]:
+            mensaje = "No tienes suficientes Perikoins."
+
+        else:
             scores = {
                 "ROJO": random.randint(30, 100),
                 "VERDE": random.randint(25, 100),
@@ -1709,15 +1810,22 @@ def derby():
                 "DORADO": 8
             }
 
-            if corredor == ganador:
+            carrera = {}
 
-                mult = cuotas[corredor]
+            for nombre, datos in corredores.items():
+                carrera[nombre] = {
+                    **datos,
+                    "score": scores[nombre]
+                }
 
+            if corredor_elegido == ganador:
+                mult = cuotas[corredor_elegido]
                 ganancia = apuesta * mult
 
                 mensaje = (
-                    f"GANO EL PERIKO {ganador}! "
-                    f"Ganaste {ganancia} Perikoins (x{mult})!"
+                    f"🏆 GANO EL {corredores[ganador]['nombre']}! "
+                    f"Ganaste {ganancia} Perikoins "
+                    f"(x{mult})!"
                 )
 
                 victoria, mensaje = procesar_apuesta(
@@ -1730,10 +1838,9 @@ def derby():
                 )
 
             else:
-
                 mensaje = (
-                    f"GANO {ganador}. "
-                    f"Tu corredor {corredor} perdio. "
+                    f"GANO EL {corredores[ganador]['nombre']}. "
+                    f"Tu corredor perdió. "
                     f"Perdiste {apuesta} Perikoins."
                 )
 
@@ -1746,9 +1853,7 @@ def derby():
                     mensaje
                 )
 
-            usuario = obtener_usuario(
-                session["user"]
-            )
+            usuario = obtener_usuario(session["user"])
 
     opciones = [
         ("ROJO", "🔴 PERIKO ROJO (x2)"),
@@ -1758,22 +1863,15 @@ def derby():
     ]
 
     return render_template_string(
-        HTML_JUEGO,
-        titulo="CARRERA DE PERIKOS",
+        HTML_DERBY,
         usuario=usuario,
-        visual="🏎️",
-        resultado=None,
-        mensaje=mensaje,
-        victoria=victoria,
         opciones=opciones,
-        label_opciones="ELIGE CORREDOR",
-        nombre_opciones="corredor"
+        carrera=carrera,
+        ganador=ganador,
+        mensaje=mensaje,
+        victoria=victoria
     )
 
-
-# ============================================================
-# TIENDA
-# ============================================================
 
 HTML_TIENDA = CSS + """
 
@@ -1867,7 +1965,6 @@ COMPRAR (500 P)
 
 @app.route("/tienda", methods=["GET", "POST"])
 def tienda():
-
     usuario = usuario_actual()
 
     if not usuario:
@@ -1877,7 +1974,6 @@ def tienda():
     nuevo = None
 
     if request.method == "POST":
-
         tipo = request.form.get("tipo")
 
         costos = {
@@ -1889,17 +1985,12 @@ def tienda():
         costo = costos.get(tipo)
 
         if not costo:
-
             mensaje = "Tipo de cofre invalido."
 
         else:
-
             db = get_db()
 
-            with db.cursor(
-                cursor_factory=RealDictCursor
-            ) as cur:
-
+            with db.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(
                     """
                     SELECT *
@@ -1913,23 +2004,15 @@ def tienda():
                 actual = cur.fetchone()
 
                 if not actual:
-
                     db.rollback()
-
                     mensaje = "Usuario no encontrado."
 
                 elif actual["perikoins"] < costo:
-
                     db.rollback()
-
-                    mensaje = (
-                        "No tienes suficientes Perikoins."
-                    )
+                    mensaje = "No tienes suficientes Perikoins."
 
                 else:
-
                     if tipo == "NORMAL":
-
                         weights = {
                             "COMUN": 65,
                             "RARO": 25,
@@ -1939,7 +2022,6 @@ def tienda():
                         }
 
                     elif tipo == "ELECTRICO":
-
                         weights = {
                             "COMUN": 30,
                             "RARO": 40,
@@ -1949,7 +2031,6 @@ def tienda():
                         }
 
                     else:
-
                         weights = {
                             "COMUN": 10,
                             "RARO": 30,
@@ -1966,31 +2047,21 @@ def tienda():
 
                     posibles = [
                         aid
-                        for aid, item
-                        in AVATARES_DB.items()
+                        for aid, item in AVATARES_DB.items()
                         if item["rareza"] == rareza
                     ]
 
-                    avatar_id = random.choice(
-                        posibles
-                    )
-
-                    nuevo = AVATARES_DB[
-                        avatar_id
-                    ]
+                    avatar_id = random.choice(posibles)
+                    nuevo = AVATARES_DB[avatar_id]
 
                     desbloqueados = cargar_avatares(
                         actual["avatares_desbloqueados"]
                     )
 
                     if avatar_id not in desbloqueados:
-                        desbloqueados.append(
-                            avatar_id
-                        )
+                        desbloqueados.append(avatar_id)
 
-                    nuevo_saldo = (
-                        actual["perikoins"] - costo
-                    )
+                    nuevo_saldo = actual["perikoins"] - costo
 
                     cur.execute(
                         """
@@ -2002,18 +2073,14 @@ def tienda():
                         """,
                         (
                             nuevo_saldo,
-                            json.dumps(
-                                desbloqueados
-                            ),
+                            json.dumps(desbloqueados),
                             usuario["username"]
                         )
                     )
 
                     db.commit()
 
-    usuario = obtener_usuario(
-        session["user"]
-    )
+    usuario = obtener_usuario(session["user"])
 
     return render_template_string(
         HTML_TIENDA,
@@ -2022,10 +2089,6 @@ def tienda():
         mensaje=mensaje
     )
 
-
-# ============================================================
-# PERFIL
-# ============================================================
 
 HTML_PERFIL = CSS + """
 
@@ -2099,7 +2162,6 @@ type="submit"
 
 @app.route("/perfil", methods=["GET", "POST"])
 def perfil():
-
     usuario = usuario_actual()
 
     if not usuario:
@@ -2110,12 +2172,9 @@ def perfil():
     )
 
     if request.method == "POST":
-
         try:
             avatar_id = int(
-                request.form.get(
-                    "avatar_id", 1
-                )
+                request.form.get("avatar_id", 1)
             )
         except ValueError:
             avatar_id = 1
@@ -2124,11 +2183,9 @@ def perfil():
             avatar_id in AVATARES_DB
             and avatar_id in desbloqueados
         ):
-
             db = get_db()
 
             with db.cursor() as cur:
-
                 cur.execute(
                     """
                     UPDATE usuarios
@@ -2160,10 +2217,6 @@ def perfil():
         avatar=avatar
     )
 
-
-# ============================================================
-# RANKING
-# ============================================================
 
 HTML_RANKING = CSS + """
 
@@ -2217,7 +2270,6 @@ HTML_RANKING = CSS + """
 
 @app.route("/ranking")
 def ranking():
-
     usuario = usuario_actual()
 
     if not usuario:
@@ -2225,10 +2277,7 @@ def ranking():
 
     db = get_db()
 
-    with db.cursor(
-        cursor_factory=RealDictCursor
-    ) as cur:
-
+    with db.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute(
             """
             SELECT
@@ -2246,7 +2295,6 @@ def ranking():
     jugadores = []
 
     for j in jugadores_db:
-
         avatar = AVATARES_DB.get(
             j["avatar_activo"],
             AVATARES_DB[1]
@@ -2267,13 +2315,8 @@ def ranking():
     )
 
 
-# ============================================================
-# RESCATE DIARIO
-# ============================================================
-
 @app.route("/rescate")
 def rescate():
-
     usuario = usuario_actual()
 
     if not usuario:
@@ -2283,14 +2326,10 @@ def rescate():
         return redirect(url_for("menu"))
 
     ahora = datetime.utcnow()
-
     puede = True
 
     if usuario["ultimo_rescate"]:
-
-        ultimo = usuario[
-            "ultimo_rescate"
-        ]
+        ultimo = usuario["ultimo_rescate"]
 
         if (
             ahora - ultimo.replace(tzinfo=None)
@@ -2299,11 +2338,9 @@ def rescate():
             puede = False
 
     if puede:
-
         db = get_db()
 
         with db.cursor() as cur:
-
             cur.execute(
                 """
                 UPDATE usuarios
@@ -2321,10 +2358,6 @@ def rescate():
 
     return redirect(url_for("menu"))
 
-
-# ============================================================
-# ADMIN
-# ============================================================
 
 HTML_ADMIN = CSS + """
 
@@ -2378,7 +2411,6 @@ REGALAR PERIKOINS
 
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
-
     usuario = usuario_actual()
 
     if not usuario:
@@ -2390,34 +2422,31 @@ def admin():
     mensaje = ""
 
     if request.method == "POST":
-
         destino = request.form.get(
-            "destino", ""
+            "destino",
+            ""
         ).strip()
 
         try:
             cantidad = int(
                 request.form.get(
-                    "cantidad", 0
+                    "cantidad",
+                    0
                 )
             )
         except ValueError:
             cantidad = 0
 
         if cantidad <= 0:
-
             mensaje = "Cantidad invalida."
 
         elif not destino:
-
             mensaje = "Destino invalido."
 
         else:
-
             db = get_db()
 
             with db.cursor() as cur:
-
                 cur.execute(
                     """
                     UPDATE usuarios
@@ -2434,15 +2463,12 @@ def admin():
                 )
 
                 if cur.rowcount == 0:
-
                     db.rollback()
 
                     mensaje = (
                         f"El usuario {destino} no existe."
                     )
-
                 else:
-
                     db.commit()
 
                     mensaje = (
@@ -2456,27 +2482,15 @@ def admin():
     )
 
 
-# ============================================================
-# LOGOUT
-# ============================================================
-
 @app.route("/logout")
 def logout():
-
     session.clear()
-
     return redirect(url_for("login"))
 
 
-# ============================================================
-# HEALTH CHECK
-# ============================================================
-
 @app.route("/health")
 def health():
-
     try:
-
         db = get_db()
 
         with db.cursor() as cur:
@@ -2488,20 +2502,14 @@ def health():
         }
 
     except Exception as e:
-
         return {
             "status": "error",
             "database": str(e)
         }, 500
 
 
-# ============================================================
-# ERRORES
-# ============================================================
-
 @app.errorhandler(Exception)
 def manejar_error(error):
-
     print("ERROR:", error)
 
     return render_template_string(
@@ -2529,15 +2537,10 @@ def manejar_error(error):
     ), 500
 
 
-# ============================================================
-# ARRANQUE
-# ============================================================
-
 init_db()
 
 
 if __name__ == "__main__":
-
     port = int(
         os.environ.get(
             "PORT",
