@@ -107,6 +107,7 @@ AVATARES_DB = {
 # ============================================================
 
 def get_db():
+
     if "db" not in g:
 
         if not DATABASE_URL:
@@ -658,6 +659,16 @@ def registro():
                 error="Ese Gamer Tag ya existe."
             )
 
+    # ========================================================
+    # CORRECCION:
+    # Antes faltaba un return cuando la pagina era GET.
+    # ========================================================
+
+    return render_template_string(
+        HTML_REGISTRO,
+        error=None
+    )
+
 
 # ============================================================
 # LOGIN
@@ -906,10 +917,6 @@ def procesar_apuesta(
     with db.cursor(
         cursor_factory=RealDictCursor
     ) as cur:
-
-        # BLOQUEA EL USUARIO PARA EVITAR
-        # DOS APUESTAS SIMULTANEAS SOBRE
-        # EL MISMO SALDO.
 
         cur.execute(
             """
@@ -1905,7 +1912,13 @@ def tienda():
 
                 actual = cur.fetchone()
 
-                if actual["perikoins"] < costo:
+                if not actual:
+
+                    db.rollback()
+
+                    mensaje = "Usuario no encontrado."
+
+                elif actual["perikoins"] < costo:
 
                     db.rollback()
 
@@ -2493,6 +2506,7 @@ def manejar_error(error):
 
     return render_template_string(
         CSS + """
+
         <div class="arcade-box">
 
         <h1>⚠️ ERROR</h1>
