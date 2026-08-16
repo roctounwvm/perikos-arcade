@@ -77,6 +77,255 @@ AVATARES_DB = {
     50: {"nombre": "Periko Absoluto", "rareza": "SECRETO", "color": "#ffff00", "icon": "👑"}
 }
 
+COLORES_NOMBRE = {
+    "BLANCO": {
+        "nombre": "Blanco",
+        "tipo": "TIENDA",
+        "precio": 500,
+        "css": "#ffffff"
+    },
+
+    "ROJO": {
+        "nombre": "Rojo",
+        "tipo": "TIENDA",
+        "precio": 750,
+        "css": "#ff0000"
+    },
+
+    "AZUL": {
+        "nombre": "Azul",
+        "tipo": "TIENDA",
+        "precio": 1000,
+        "css": "#0088ff"
+    },
+
+    "VERDE": {
+        "nombre": "Verde",
+        "tipo": "TIENDA",
+        "precio": 1250,
+        "css": "#00ff66"
+    },
+
+    "AMARILLO": {
+        "nombre": "Amarillo",
+        "tipo": "TIENDA",
+        "precio": 1500,
+        "css": "#ffff00"
+    },
+
+    "NARANJA": {
+        "nombre": "Naranja",
+        "tipo": "TIENDA",
+        "precio": 1750,
+        "css": "#ff7700"
+    },
+
+    "MORADO": {
+        "nombre": "Morado",
+        "tipo": "TIENDA",
+        "precio": 2000,
+        "css": "#aa00ff"
+    },
+
+    "ROSADO": {
+        "nombre": "Rosado",
+        "tipo": "TIENDA",
+        "precio": 2250,
+        "css": "#ff69b4"
+    },
+
+    "CELESTE": {
+        "nombre": "Celeste",
+        "tipo": "TIENDA",
+        "precio": 2500,
+        "css": "#00ccff"
+    },
+
+    "GRIS": {
+        "nombre": "Gris",
+        "tipo": "TIENDA",
+        "precio": 3000,
+        "css": "#888888"
+    },
+
+    # DESDE AQUI: COLORES EXCLUSIVOS DE LA MAQUINA
+
+    "FUEGO": {
+        "nombre": "Fuego",
+        "tipo": "MAQUINA",
+        "rareza": "RARO",
+        "css": "linear-gradient(90deg,#ff0000,#ffff00)"
+    },
+
+    "HIELO": {
+        "nombre": "Hielo",
+        "tipo": "MAQUINA",
+        "rareza": "RARO",
+        "css": "linear-gradient(90deg,#00ffff,#ffffff)"
+    },
+
+    "NEON": {
+        "nombre": "Neón",
+        "tipo": "MAQUINA",
+        "rareza": "RARO",
+        "css": "linear-gradient(90deg,#00ff00,#00ffff,#ff00ff)"
+    },
+
+    "OCEANO": {
+        "nombre": "Océano",
+        "tipo": "MAQUINA",
+        "rareza": "RARO",
+        "css": "linear-gradient(90deg,#0066ff,#00ffff)"
+    },
+
+    "ATARDECER": {
+        "nombre": "Atardecer",
+        "tipo": "MAQUINA",
+        "rareza": "RARO",
+        "css": "linear-gradient(90deg,#ff5500,#ff00aa)"
+    },
+
+    "ELECTRICO": {
+        "nombre": "Eléctrico",
+        "tipo": "MAQUINA",
+        "rareza": "EPICO",
+        "css": "linear-gradient(90deg,#0044ff,#ffffff)"
+    },
+
+    "TOXICO": {
+        "nombre": "Tóxico",
+        "tipo": "MAQUINA",
+        "rareza": "EPICO",
+        "css": "linear-gradient(90deg,#00ff00,#99ff00)"
+    },
+
+    "GALAXIA": {
+        "nombre": "Galaxia",
+        "tipo": "MAQUINA",
+        "rareza": "LEGENDARIO",
+        "css": "linear-gradient(90deg,#ff69b4,#7700ff,#220044)"
+    },
+
+    "LAVA": {
+        "nombre": "Lava",
+        "tipo": "MAQUINA",
+        "rareza": "LEGENDARIO",
+        "css": "linear-gradient(90deg,#ff0000,#ff7700,#ffff00)"
+    },
+
+    "AURORA": {
+        "nombre": "Aurora",
+        "tipo": "MAQUINA",
+        "rareza": "LEGENDARIO",
+        "css": "linear-gradient(90deg,#00ffcc,#00ffff,#aa00ff)"
+    },
+
+    "ARCOIRIS": {
+        "nombre": "Arcoíris",
+        "tipo": "MAQUINA",
+        "rareza": "LEGENDARIO",
+        "css": "linear-gradient(90deg,#ff0000,#ffff00,#00ff00,#00ffff,#0088ff,#ff00ff)"
+    },
+
+    "VOID": {
+        "nombre": "Void",
+        "tipo": "MAQUINA",
+        "rareza": "MITICO",
+        "css": "linear-gradient(90deg,#000000,#330066,#aa00ff)"
+    },
+
+    "SANGRE": {
+        "nombre": "Sangre",
+        "tipo": "MAQUINA",
+        "rareza": "MITICO",
+        "css": "linear-gradient(90deg,#330000,#ff0000,#660000)"
+    },
+
+    "VENENO": {
+        "nombre": "Veneno",
+        "tipo": "MAQUINA",
+        "rareza": "MITICO",
+        "css": "linear-gradient(90deg,#003300,#00ff00,#66ff00)"
+    },
+
+    "COSMICO": {
+        "nombre": "Cósmico",
+        "tipo": "MAQUINA",
+        "rareza": "MITICO",
+        "css": "linear-gradient(90deg,#ff00ff,#2200ff,#00ffff)"
+    },
+
+    "DIAMANTE": {
+        "nombre": "Diamante",
+        "tipo": "MAQUINA",
+        "rareza": "MITICO",
+        "css": "linear-gradient(90deg,#ffffff,#00ffff,#0088ff)"
+    },
+
+    "DORADO": {
+        "nombre": "Dorado",
+        "tipo": "MAQUINA",
+        "rareza": "MITICO",
+        "css": "linear-gradient(90deg,#aa6600,#ffff00,#ffffff)"
+    },
+
+    "NEGRO_INFERNAL": {
+        "nombre": "Negro Infernal",
+        "tipo": "MAQUINA",
+        "rareza": "SECRETO",
+        "css": "linear-gradient(90deg,#000000,#ff0000,#000000)"
+    },
+
+    "GALAXIA_ROSA": {
+        "nombre": "Galaxia Rosa",
+        "tipo": "MAQUINA",
+        "rareza": "SECRETO",
+        "css": "linear-gradient(90deg,#ff69b4,#aa00ff,#220044)"
+    },
+
+    "SUPERNOVA": {
+        "nombre": "Supernova",
+        "tipo": "MAQUINA",
+        "rareza": "SECRETO",
+        "css": "linear-gradient(90deg,#ffffff,#ffff00,#ff6600,#ff0000)"
+    },
+
+    "DRAGON": {
+        "nombre": "Dragón",
+        "tipo": "MAQUINA",
+        "rareza": "SECRETO",
+        "css": "linear-gradient(90deg,#ff0000,#ff00ff,#7700ff)"
+    },
+
+    "GLITCH": {
+        "nombre": "Glitch",
+        "tipo": "MAQUINA",
+        "rareza": "SECRETO",
+        "css": "linear-gradient(90deg,#ff0000,#00ffff,#ff00ff,#00ff00)"
+    },
+
+    "VOID_COSMICO": {
+        "nombre": "Void Cósmico",
+        "tipo": "MAQUINA",
+        "rareza": "ULTRA",
+        "css": "linear-gradient(90deg,#000000,#220044,#ff00ff,#000000)"
+    },
+
+    "PERIKO": {
+        "nombre": "Periko",
+        "tipo": "MAQUINA",
+        "rareza": "ULTRA",
+        "css": "linear-gradient(90deg,#ffff00,#ff0055,#00ffff,#ffff00)"
+    },
+
+    "DIVINO": {
+        "nombre": "Divino",
+        "tipo": "MAQUINA",
+        "rareza": "ULTRA",
+        "css": "linear-gradient(90deg,#ffffff,#ffff00,#ffffff)"
+    }
+}
+
 
 def get_db():
     if "db" not in g:
@@ -135,6 +384,18 @@ def init_db():
             cur.execute("""
                 CREATE INDEX IF NOT EXISTS idx_usuarios_username
                 ON usuarios(username);
+            """)
+
+            cur.execute("""
+                ALTER TABLE usuarios
+                ADD COLUMN IF NOT EXISTS color_nombre
+                VARCHAR(50) NOT NULL DEFAULT 'BLANCO'
+            """)
+
+            cur.execute("""
+                ALTER TABLE usuarios
+                ADD COLUMN IF NOT EXISTS colores_desbloqueados
+                JSONB NOT NULL DEFAULT '["BLANCO"]'::jsonb
             """)
 
         conn.commit()
@@ -202,6 +463,24 @@ def cargar_avatares(valor):
             return [1]
 
     return [1]
+
+def obtener_estilo_color(color_nombre):
+    color = COLORES_NOMBRE.get(
+        color_nombre,
+        COLORES_NOMBRE["BLANCO"]
+    )
+
+    css = color.get("css", "#ffffff")
+
+    if css.startswith("linear-gradient"):
+        return (
+            f"background:{css};"
+            "-webkit-background-clip:text;"
+            "-webkit-text-fill-color:transparent;"
+            "background-clip:text;"
+        )
+
+    return f"color:{css};"
 
 
 CSS = """
@@ -463,6 +742,51 @@ button {
 
 .locked {
     opacity:.25;
+}
+
+.name-color {
+    font-size:9px;
+    font-weight:bold;
+    padding:8px;
+    margin:5px 0;
+    border-radius:5px;
+    background:#000;
+}
+
+.color-card {
+    background:#000;
+    border:2px solid #333;
+    padding:12px;
+    margin:8px 0;
+    border-radius:8px;
+}
+
+.color-preview {
+    font-size:10px;
+    padding:8px;
+    margin:8px 0;
+    border-radius:5px;
+    background:#111;
+    border:1px solid #555;
+}
+
+.machine {
+    background:#080010;
+    border:3px solid #ff00ff;
+    box-shadow:0 0 15px #ff00ff;
+    padding:18px;
+    margin:15px 0;
+    border-radius:10px;
+}
+
+.machine-icon {
+    font-size:55px;
+    animation:arcadePulse 1s infinite;
+}
+
+.rarity {
+    font-size:7px;
+    margin-top:5px;
 }
 
 table {
@@ -840,8 +1164,13 @@ HTML_MENU = CSS + """
 
 <div class="badge">
 {{ avatar.icon }}
-{{ usuario.username }}
+
+<span style="{{ color_estilo }}">
+    {{ usuario.username }}
+</span>
+
 <br><br>
+
 {{ usuario.perikoins }} P
 </div>
 
@@ -944,16 +1273,20 @@ def menu():
         AVATARES_DB[1]
     )
 
+    color_estilo = obtener_estilo_color(
+        usuario["color_nombre"]
+    )
+
     return render_template_string(
         HTML_MENU,
         usuario=usuario,
         avatar=avatar,
         regalo=regalo,
+        color_estilo=color_estilo,
         es_admin=(
             usuario["username"].lower() == "periko"
         )
     )
-
 
 def procesar_apuesta(
     usuario,
@@ -1888,69 +2221,286 @@ SALDO: {{ usuario.perikoins }} P
 <div class="win">
 HAS CONSEGUIDO:
 <br><br>
+
 <span style="font-size:40px">
 {{ nuevo.icon }}
 </span>
+
 <br>
+
 {{ nuevo.nombre }}
+
 <br>
+
 <span style="color:{{ nuevo.color }}">
 [{{ nuevo.rareza }}]
 </span>
+
 </div>
 
 {% endif %}
 
 {% if mensaje %}
+
 <div class="msg">
 {{ mensaje }}
 </div>
+
 {% endif %}
 
+
+<!-- ============================= -->
+<!-- COFRES -->
+<!-- ============================= -->
+
 <div class="chest">
+
 <div class="chest-icon">📦</div>
+
 <strong>COFRE NORMAL</strong>
+
 <p style="font-size:7px;color:#aaa">
 Mayormente Comun y Raro
 </p>
 
 <form method="POST">
-<input type="hidden" name="tipo" value="NORMAL">
+
+<input
+type="hidden"
+name="tipo"
+value="NORMAL"
+>
+
 <button class="btn" type="submit">
 COMPRAR (100 P)
 </button>
+
 </form>
+
 </div>
 
+
 <div class="chest" style="border-color:#0088ff">
+
 <div class="chest-icon">⚡</div>
+
 <strong>COFRE ELECTRICO</strong>
+
 <p style="font-size:7px;color:#aaa">
 Mas chance de Legendario y Mitico
 </p>
 
 <form method="POST">
-<input type="hidden" name="tipo" value="ELECTRICO">
+
+<input
+type="hidden"
+name="tipo"
+value="ELECTRICO"
+>
+
 <button class="btn" type="submit">
 COMPRAR (250 P)
 </button>
+
 </form>
+
 </div>
 
+
 <div class="chest" style="border-color:#ff0055">
+
 <div class="chest-icon">🔥</div>
+
 <strong>COFRE FUEGO</strong>
+
 <p style="font-size:7px;color:#aaa">
 Alta chance Mitico y Secreto
 </p>
 
 <form method="POST">
-<input type="hidden" name="tipo" value="FUEGO">
+
+<input
+type="hidden"
+name="tipo"
+value="FUEGO"
+>
+
 <button class="btn" type="submit">
 COMPRAR (500 P)
 </button>
+
 </form>
+
 </div>
+
+
+<!-- ============================= -->
+<!-- COLORES DE NOMBRE -->
+<!-- ============================= -->
+
+<div class="chest" style="border-color:#ffff00">
+
+<h2 style="color:#ffff00;font-size:10px;">
+🎨 COLORES DE NOMBRE
+</h2>
+
+<p style="font-size:7px;color:#aaa;line-height:1.7;">
+Compra colores especiales para tu Gamer Tag.
+<br>
+Los colores comprados pueden equiparse desde aqui.
+</p>
+
+
+{% for clave,color in colores_tienda.items() %}
+
+<div class="color-card"
+style="border-color:{{ color.css }};">
+
+<div
+class="color-preview"
+style="color:{{ color.css }};"
+>
+
+{{ color.nombre }}
+
+</div>
+
+
+{% if clave in colores_desbloqueados %}
+
+<div
+style="
+font-size:7px;
+color:#00ff00;
+margin:8px 0;
+"
+>
+✓ DESBLOQUEADO
+</div>
+
+{% if usuario.color_nombre == clave %}
+
+<button
+class="btn btn-green"
+type="button"
+disabled
+>
+✓ EQUIPADO
+</button>
+
+{% else %}
+
+<form method="POST">
+
+<input
+type="hidden"
+name="accion"
+value="equipar_color"
+>
+
+<input
+type="hidden"
+name="color"
+value="{{ clave }}"
+>
+
+<button
+class="btn btn-yellow"
+type="submit"
+>
+EQUIPAR
+</button>
+
+</form>
+
+{% endif %}
+
+{% else %}
+
+<div
+style="
+font-size:7px;
+color:#ffff00;
+margin:8px 0;
+"
+>
+💰 {{ color.precio }} PERIKOINS
+</div>
+
+<form method="POST">
+
+<input
+type="hidden"
+name="accion"
+value="comprar_color"
+>
+
+<input
+type="hidden"
+name="color"
+value="{{ clave }}"
+>
+
+<button
+class="btn"
+type="submit"
+>
+COMPRAR {{ color.precio }} P
+</button>
+
+</form>
+
+{% endif %}
+
+</div>
+
+{% endfor %}
+
+</div>
+
+
+<!-- ============================= -->
+<!-- COLORES DE MAQUINA -->
+<!-- ============================= -->
+
+<div
+class="chest"
+style="border-color:#ff00ff;"
+>
+
+<h2 style="color:#ff00ff;font-size:10px;">
+🎰 COLORES DE LA MAQUINA
+</h2>
+
+<p
+style="
+font-size:7px;
+color:#aaa;
+line-height:1.8;
+"
+>
+🔥 FUEGO<br>
+❄️ HIELO<br>
+🌈 NEON<br>
+🌌 GALAXIA<br>
+👑 DIVINO<br>
+<br>
+Estos colores son exclusivos
+de la maquina.
+</p>
+
+<div
+style="
+font-size:7px;
+color:#ff00ff;
+margin-top:10px;
+"
+>
+🔒 PROXIMAMENTE
+</div>
+
+</div>
+
 
 <a class="link" href="/menu">
 < VOLVER
@@ -1962,7 +2512,6 @@ COMPRAR (500 P)
 </html>
 """
 
-
 @app.route("/tienda", methods=["GET", "POST"])
 def tienda():
     usuario = usuario_actual()
@@ -1973,122 +2522,417 @@ def tienda():
     mensaje = ""
     nuevo = None
 
+    # ==========================================
+    # COLORES DISPONIBLES PARA COMPRAR
+    # ==========================================
+
+    colores_tienda = {
+        clave: datos
+        for clave, datos in COLORES_NOMBRE.items()
+        if datos.get("tipo") == "TIENDA"
+    }
+
+    # ==========================================
+    # POST
+    # ==========================================
+
     if request.method == "POST":
-        tipo = request.form.get("tipo")
 
-        costos = {
-            "NORMAL": 100,
-            "ELECTRICO": 250,
-            "FUEGO": 500
-        }
+        accion = request.form.get("accion")
 
-        costo = costos.get(tipo)
+        # ======================================
+        # COMPRAR COLOR
+        # ======================================
 
-        if not costo:
-            mensaje = "Tipo de cofre invalido."
+        if accion == "comprar_color":
 
-        else:
-            db = get_db()
+            clave = request.form.get("color")
 
-            with db.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute(
-                    """
-                    SELECT *
-                    FROM usuarios
-                    WHERE username = %s
-                    FOR UPDATE
-                    """,
-                    (usuario["username"],)
-                )
+            color = colores_tienda.get(clave)
 
-                actual = cur.fetchone()
+            if not color:
 
-                if not actual:
+                mensaje = "Color invalido."
+
+            else:
+
+                db = get_db()
+
+                try:
+
+                    with db.cursor(
+                        cursor_factory=RealDictCursor
+                    ) as cur:
+
+                        cur.execute(
+                            """
+                            SELECT *
+                            FROM usuarios
+                            WHERE username = %s
+                            FOR UPDATE
+                            """,
+                            (usuario["username"],)
+                        )
+
+                        actual = cur.fetchone()
+
+                        if not actual:
+
+                            db.rollback()
+
+                            mensaje = (
+                                "Usuario no encontrado."
+                            )
+
+                        else:
+
+                            colores_desbloqueados = cargar_avatares(
+                                actual["colores_desbloqueados"]
+                            )
+
+                            # ----------------------------------
+                            # YA TIENE EL COLOR
+                            # ----------------------------------
+
+                            if clave in colores_desbloqueados:
+
+                                db.rollback()
+
+                                mensaje = (
+                                    "Ya tienes este color."
+                                )
+
+                            # ----------------------------------
+                            # NO TIENE SUFICIENTES PERIKOINS
+                            # ----------------------------------
+
+                            elif actual["perikoins"] < color["precio"]:
+
+                                db.rollback()
+
+                                mensaje = (
+                                    "No tienes suficientes "
+                                    "Perikoins."
+                                )
+
+                            # ----------------------------------
+                            # COMPRA
+                            # ----------------------------------
+
+                            else:
+
+                                colores_desbloqueados.append(
+                                    clave
+                                )
+
+                                nuevo_saldo = (
+                                    actual["perikoins"]
+                                    - color["precio"]
+                                )
+
+                                cur.execute(
+                                    """
+                                    UPDATE usuarios
+                                    SET
+                                        perikoins = %s,
+                                        colores_desbloqueados = %s
+                                    WHERE username = %s
+                                    """,
+                                    (
+                                        nuevo_saldo,
+                                        json.dumps(
+                                            colores_desbloqueados
+                                        ),
+                                        usuario["username"]
+                                    )
+                                )
+
+                                db.commit()
+
+                                mensaje = (
+                                    f"🎨 Compraste el color "
+                                    f"{color['nombre']}."
+                                )
+
+                        usuario = obtener_usuario(
+                            session["user"]
+                        )
+
+                except Exception as e:
+
                     db.rollback()
-                    mensaje = "Usuario no encontrado."
 
-                elif actual["perikoins"] < costo:
-                    db.rollback()
-                    mensaje = "No tienes suficientes Perikoins."
-
-                else:
-                    if tipo == "NORMAL":
-                        weights = {
-                            "COMUN": 65,
-                            "RARO": 25,
-                            "LEGENDARIO": 8,
-                            "MITICO": 2,
-                            "SECRETO": 0
-                        }
-
-                    elif tipo == "ELECTRICO":
-                        weights = {
-                            "COMUN": 30,
-                            "RARO": 40,
-                            "LEGENDARIO": 20,
-                            "MITICO": 9,
-                            "SECRETO": 1
-                        }
-
-                    else:
-                        weights = {
-                            "COMUN": 10,
-                            "RARO": 30,
-                            "LEGENDARIO": 35,
-                            "MITICO": 20,
-                            "SECRETO": 5
-                        }
-
-                    rareza = random.choices(
-                        list(weights.keys()),
-                        weights=list(weights.values()),
-                        k=1
-                    )[0]
-
-                    posibles = [
-                        aid
-                        for aid, item in AVATARES_DB.items()
-                        if item["rareza"] == rareza
-                    ]
-
-                    avatar_id = random.choice(posibles)
-                    nuevo = AVATARES_DB[avatar_id]
-
-                    desbloqueados = cargar_avatares(
-                        actual["avatares_desbloqueados"]
+                    print(
+                        "ERROR AL COMPRAR COLOR:",
+                        e
                     )
 
-                    if avatar_id not in desbloqueados:
-                        desbloqueados.append(avatar_id)
+                    mensaje = (
+                        "Ocurrio un error al comprar "
+                        "el color."
+                    )
 
-                    nuevo_saldo = actual["perikoins"] - costo
+
+        # ======================================
+        # EQUIPAR COLOR
+        # ======================================
+
+        elif accion == "equipar_color":
+
+            clave = request.form.get("color")
+
+            color = colores_tienda.get(clave)
+
+            if not color:
+
+                mensaje = "Color invalido."
+
+            else:
+
+                db = get_db()
+
+                try:
+
+                    with db.cursor(
+                        cursor_factory=RealDictCursor
+                    ) as cur:
+
+                        cur.execute(
+                            """
+                            SELECT *
+                            FROM usuarios
+                            WHERE username = %s
+                            FOR UPDATE
+                            """,
+                            (usuario["username"],)
+                        )
+
+                        actual = cur.fetchone()
+
+                        if not actual:
+
+                            db.rollback()
+
+                            mensaje = (
+                                "Usuario no encontrado."
+                            )
+
+                        else:
+
+                            colores_desbloqueados = cargar_avatares(
+                                actual["colores_desbloqueados"]
+                            )
+
+                            if clave not in colores_desbloqueados:
+
+                                db.rollback()
+
+                                mensaje = (
+                                    "No tienes desbloqueado "
+                                    "este color."
+                                )
+
+                            else:
+
+                                cur.execute(
+                                    """
+                                    UPDATE usuarios
+                                    SET color_nombre = %s
+                                    WHERE username = %s
+                                    """,
+                                    (
+                                        clave,
+                                        usuario["username"]
+                                    )
+                                )
+
+                                db.commit()
+
+                                mensaje = (
+                                    f"🎨 Equipaste "
+                                    f"{color['nombre']}."
+                                )
+
+                except Exception as e:
+
+                    db.rollback()
+
+                    print(
+                        "ERROR AL EQUIPAR COLOR:",
+                        e
+                    )
+
+                    mensaje = (
+                        "Ocurrio un error al equipar "
+                        "el color."
+                    )
+
+
+        # ======================================
+        # COMPRA DE COFRES
+        # ======================================
+
+        else:
+
+            tipo = request.form.get("tipo")
+
+            costos = {
+                "NORMAL": 100,
+                "ELECTRICO": 250,
+                "FUEGO": 500
+            }
+
+            costo = costos.get(tipo)
+
+            if not costo:
+
+                mensaje = "Tipo de cofre invalido."
+
+            else:
+
+                db = get_db()
+
+                with db.cursor(
+                    cursor_factory=RealDictCursor
+                ) as cur:
 
                     cur.execute(
                         """
-                        UPDATE usuarios
-                        SET
-                            perikoins = %s,
-                            avatares_desbloqueados = %s
+                        SELECT *
+                        FROM usuarios
                         WHERE username = %s
+                        FOR UPDATE
                         """,
-                        (
-                            nuevo_saldo,
-                            json.dumps(desbloqueados),
-                            usuario["username"]
-                        )
+                        (usuario["username"],)
                     )
 
-                    db.commit()
+                    actual = cur.fetchone()
 
-    usuario = obtener_usuario(session["user"])
+                    if not actual:
+
+                        db.rollback()
+
+                        mensaje = (
+                            "Usuario no encontrado."
+                        )
+
+                    elif actual["perikoins"] < costo:
+
+                        db.rollback()
+
+                        mensaje = (
+                            "No tienes suficientes "
+                            "Perikoins."
+                        )
+
+                    else:
+
+                        if tipo == "NORMAL":
+
+                            weights = {
+                                "COMUN": 65,
+                                "RARO": 25,
+                                "LEGENDARIO": 8,
+                                "MITICO": 2,
+                                "SECRETO": 0
+                            }
+
+                        elif tipo == "ELECTRICO":
+
+                            weights = {
+                                "COMUN": 30,
+                                "RARO": 40,
+                                "LEGENDARIO": 20,
+                                "MITICO": 9,
+                                "SECRETO": 1
+                            }
+
+                        else:
+
+                            weights = {
+                                "COMUN": 10,
+                                "RARO": 30,
+                                "LEGENDARIO": 35,
+                                "MITICO": 20,
+                                "SECRETO": 5
+                            }
+
+                        rareza = random.choices(
+                            list(weights.keys()),
+                            weights=list(weights.values()),
+                            k=1
+                        )[0]
+
+                        posibles = [
+                            aid
+                            for aid, item in AVATARES_DB.items()
+                            if item["rareza"] == rareza
+                        ]
+
+                        avatar_id = random.choice(
+                            posibles
+                        )
+
+                        nuevo = AVATARES_DB[
+                            avatar_id
+                        ]
+
+                        desbloqueados = cargar_avatares(
+                            actual[
+                                "avatares_desbloqueados"
+                            ]
+                        )
+
+                        if avatar_id not in desbloqueados:
+
+                            desbloqueados.append(
+                                avatar_id
+                            )
+
+                        nuevo_saldo = (
+                            actual["perikoins"]
+                            - costo
+                        )
+
+                        cur.execute(
+                            """
+                            UPDATE usuarios
+                            SET
+                                perikoins = %s,
+                                avatares_desbloqueados = %s
+                            WHERE username = %s
+                            """,
+                            (
+                                nuevo_saldo,
+                                json.dumps(
+                                    desbloqueados
+                                ),
+                                usuario["username"]
+                            )
+                        )
+
+                        db.commit()
+
+    # ==========================================
+    # RECARGAR USUARIO
+    # ==========================================
+
+    usuario = obtener_usuario(
+        session["user"]
+    )
+
+    colores_desbloqueados = cargar_avatares(
+        usuario["colores_desbloqueados"]
+    )
 
     return render_template_string(
         HTML_TIENDA,
         usuario=usuario,
         nuevo=nuevo,
-        mensaje=mensaje
+        mensaje=mensaje,
+        colores_tienda=colores_tienda,
+        colores_desbloqueados=colores_desbloqueados
     )
-
 
 HTML_PERFIL = CSS + """
 
