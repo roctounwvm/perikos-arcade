@@ -3085,8 +3085,11 @@ HTML_RANKING = CSS + """
 <td>{{ pos }}</td>
 
 <td>
-{{ j.avatar.icon }}
-{{ j.username }}
+    {{ j.avatar.icon }}
+
+    <span style="{{ j.color_estilo }}">
+        {{ j.username }}
+    </span>
 </td>
 
 <td>
@@ -3127,7 +3130,8 @@ def ranking():
             SELECT
                 username,
                 perikoins,
-                avatar_activo
+                avatar_activo,
+                color_nombre
             FROM usuarios
             ORDER BY perikoins DESC
             LIMIT 50
@@ -3147,9 +3151,12 @@ def ranking():
         jugadores.append({
             "username": j["username"],
             "perikoins": j["perikoins"],
-            "avatar": avatar
+            "avatar": avatar,
+            "color_estilo": obtener_estilo_color(
+                j["color_nombre"]
+            )
         })
-
+        
     return render_template_string(
         HTML_RANKING,
         jugadores=enumerate(
