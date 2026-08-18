@@ -402,6 +402,18 @@ def init_db():
             """)
 
             cur.execute("""
+                ALTER TABLE usuarios
+                ADD COLUMN IF NOT EXISTS racha_dias
+                INTEGER NOT NULL DEFAULT 0
+            """)
+
+            cur.execute("""
+                ALTER TABLE usuarios
+                ADD COLUMN IF NOT EXISTS ultima_conexion
+                DATE
+            """)
+
+            cur.execute("""
                 CREATE TABLE IF NOT EXISTS mensajes_globales (
                     id BIGSERIAL PRIMARY KEY,
                     mensaje TEXT NOT NULL,
@@ -480,6 +492,52 @@ def cargar_avatares(valor):
             return [1]
 
     return [1]
+
+def actualizar_racha(usuario):
+    """
+    Actualiza la racha de conexion diaria del usuario.
+    Si se conecto hoy y ya estaba registrado, no cambia nada.
+    Si se conecto hoy por primera vez, suma 1.
+    Si paso mas de 1 dia sin conectarse, se reinicia a 1.
+    """
+    db = get_db()
+    username = usuario["username"]
+    hoy = datetime.utcnow().date()
+    ultima = usuario.get("ultima_conexion")
+    racha_actual = usuario.get("racha_dias", 0) or 0
+
+    if ultima is not None:
+        if isinstance(ultima, datetime):
+            ultima = ultima.date()
+
+    if ultima == hoy:
+        return racha_actual
+
+    if ultima is not None:
+        diferencia = (hoy - ultima).days
+
+        if diferencia == 1:
+            nueva_racha = racha_actual + 1
+        else:
+            nueva_racha = 1
+    else:
+        nueva_racha = 1
+
+    with db.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE usuarios
+            SET racha_dias = %s,
+                ultima_conexion = %s
+            WHERE username = %s
+            """,
+            (nueva_racha, hoy, username)
+        )
+
+    db.commit()
+
+    return nueva_racha
+
 
 def obtener_estilo_color(color_nombre):
     color = COLORES_NOMBRE.get(
@@ -693,6 +751,36 @@ button {
 
 .allin:active {
     transform:translateY(2px) scale(.98);
+}
+
+.racha-badge {
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:linear-gradient(135deg,#ff4400,#ff8800,#ffcc00);
+    color:#000;
+    padding:6px 14px;
+    border-radius:20px;
+    font-size:9px;
+    margin:6px 0 10px;
+    animation:streakPulse 1.2s ease-in-out infinite;
+    border:2px solid #ff6600;
+    box-shadow:0 0 12px #ff6600;
+}
+
+@keyframes streakPulse {
+    0%,100%{transform:scale(1);box-shadow:0 0 8px #ff6600}
+    50%{transform:scale(1.06);box-shadow:0 0 20px #ff8800}
+}
+
+.racha-fire {
+    animation:fireFlicker .4s ease-in-out infinite alternate;
+    display:inline-block;
+}
+
+@keyframes fireFlicker {
+    0%{transform:translateY(0) scale(1);filter:brightness(1)}
+    100%{transform:translateY(-2px) scale(1.15);filter:brightness(1.3)}
 }
 
 .link {
@@ -1466,6 +1554,13 @@ HTML_MENU = CSS + """
 {{ usuario.perikoins }} P
 </div>
 
+{% if racha > 0 %}
+<div class="racha-badge">
+    <span class="racha-fire">🔥</span>
+    {{ racha }} DIA{% if racha != 1 %}S{% endif %}
+</div>
+{% endif %}
+
 {% if usuario.perikoins == 0 %}
 
 <div class="msg">
@@ -1573,12 +1668,15 @@ def menu():
         usuario["color_nombre"]
     )
 
+    racha = actualizar_racha(usuario)
+
     return render_template_string(
         HTML_MENU,
         usuario=usuario,
         avatar=avatar,
         regalo=regalo,
         color_estilo=color_estilo,
+        racha=racha,
         es_admin=(
             usuario["username"].lower() == "periko"
         )
