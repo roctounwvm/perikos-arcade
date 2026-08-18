@@ -3558,6 +3558,36 @@ type="submit"
 </div>
 
 
+<!-- NUEVA TABLA: ÚLTIMOS USUARIOS REGISTRADOS -->
+<div class="chest" style="border-color:#ffaa00; width: 100%;">
+    <h2 style="color:#ffaa00; font-size:10px; text-align: center; margin-bottom: 8px;">👥 ÚLTIMOS USUARIOS REGISTRADOS</h2>
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; color: white; font-size: 8px; text-align: left; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 1px solid #444;">
+                    <th style="padding: 4px;">ID</th>
+                    <th>Gamer Tag</th>
+                    <th>Perikoins</th>
+                    <th>Racha</th>
+                    <th>Último Login</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in usuarios %}
+                <tr style="border-bottom: 1px solid #222;">
+                    <td style="padding: 4px;">{{ u.id }}</td>
+                    <td style="color: cyan; font-weight: bold;">{{ u.username }}</td>
+                    <td style="color: gold;">{{ u.perikoins }} 🪙</td>
+                    <td>🔥 {{ u.daily_streak or 0 }}</td>
+                    <td style="color: #aaa;">{{ u.last_login or 'Nunca' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
 <div class="chest" style="border-color:#ffff00;">
 
 <h2 style="color:#ffff00;font-size:10px;">
@@ -3595,81 +3625,47 @@ def admin():
         return redirect(url_for("menu"))
 
     mensaje = ""
+    db = get_db()
 
     if request.method == "POST":
         accion_admin = request.form.get("accion_admin")
 
         if accion_admin == "mantenimiento":
             MODO_MANTENIMIENTO = not MODO_MANTENIMIENTO
-            mensaje = (
-                "Modo mantenimiento ACTIVADO."
-                if MODO_MANTENIMIENTO
-                else "Modo mantenimiento DESACTIVADO."
-            )
-            return render_template_string(
-                HTML_ADMIN,
-                mensaje=mensaje,
-                mantenimiento=MODO_MANTENIMIENTO
-            )
-
-        destino = request.form.get(
-            "destino",
-            ""
-        ).strip()
-
-        try:
-            cantidad = int(
-                request.form.get(
-                    "cantidad",
-                    0
-                )
-            )
-        except ValueError:
-            cantidad = 0
-
-        if cantidad <= 0:
-            mensaje = "Cantidad invalida."
-
-        elif not destino:
-            mensaje = "Destino invalido."
-
+            mensaje = "Modo mantenimiento ACTIVADO." if MODO_MANTENIMIENTO else "Modo mantenimiento DESACTIVADO."
+        
         else:
-            db = get_db()
+            destino = request.form.get("destino", "").strip()
+            try:
+                cantidad = int(request.form.get("cantidad", 0))
+            except ValueError:
+                cantidad = 0
 
-            with db.cursor() as cur:
-                cur.execute(
-                    """
-                    UPDATE usuarios
-                    SET
-                        perikoins = perikoins + %s,
-                        notif_regalo = notif_regalo + %s
-                    WHERE username = %s
-                    """,
-                    (
-                        cantidad,
-                        cantidad,
-                        destino
-                    )
-                )
+            if cantidad > 0 and destino:
+                with db.cursor() as cur:
+                    cur.execute("""
+                        UPDATE usuarios 
+                        SET perikoins = perikoins + %s 
+                        WHERE username = %s
+                    """, (cantidad, destino))
+                    
+                    if cur.rowcount == 0:
+                        db.rollback()
+                        mensaje = f"El usuario {destino} no existe."
+                    else:
+                        db.commit()
+                        mensaje = f"Regalaste {cantidad} Perikoins a {destino}."
 
-                if cur.rowcount == 0:
-                    db.rollback()
-
-                    mensaje = (
-                        f"El usuario {destino} no existe."
-                    )
-                else:
-                    db.commit()
-
-                    mensaje = (
-                        f"Regalaste {cantidad} "
-                        f"Perikoins a {destino}."
-                    )
+    # Obtener lista de usuarios para la tabla
+    with db.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("SELECT id, username, perikoins, daily_streak, last_login FROM usuarios ORDER BY id DESC LIMIT 20;")
+        ultimos_usuarios = cur.fetchall()
 
     return render_template_string(
         HTML_ADMIN,
         mensaje=mensaje,
-        mantenimiento=MODO_MANTENIMIENTO
+        mantenimiento=MODO_MANTENIMIENTO,
+        usuarios=ultimos_usuarios
     )
 
 @app.route("/admin/eliminar", methods=["POST"])
