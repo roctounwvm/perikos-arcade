@@ -93,6 +93,11 @@ PRESTIGIO_PRECIO_TOPE = 5_150_000_000_000_000_000  # 5.15 quintillones
 EXP_POR_VICTORIA = 10  # EXP ganada por cada partida ganada
 NIVEL_MAXIMO = 500     # Nivel maximo
 
+# Registro de movimientos (10 min)
+REGISTRO_MOVIMIENTOS = []       # lista de dicts: {timestamp, usuario, tipo, cantidad, juego}
+REGISTRO_ACTIVO = False         # True = grabando movimientos
+REGISTRO_DURACION = 600         # 10 minutos en segundos
+
 
 def exp_necesaria(nivel):
     """EXP necesaria para subir del nivel actual al siguiente.
@@ -2027,6 +2032,17 @@ def procesar_apuesta(
         )
 
     db.commit()
+
+    # --- Registrar movimiento si el registro está activo ---
+    if REGISTRO_ACTIVO:
+        import time as _time
+        REGISTRO_MOVIMIENTOS.append({
+            "timestamp": _time.time(),
+            "usuario": usuario["username"],
+            "tipo": "Ganó" if ganado else "Perdió",
+            "cantidad": apuesta * (multiplicador * (2 if MODO_CARNAVAL else 1)) if ganado else apuesta,
+            "juego": mensaje_gana[:30] if ganado else mensaje_pierde[:30]
+        })
 
     if ganado:
         exp_cantidad = EXP_POR_VICTORIA * 2 if MODO_CARNAVAL else EXP_POR_VICTORIA
@@ -4299,6 +4315,47 @@ HTML_ADMIN = CSS + """
 </div>
 
 
+<div class="chest" style="border-color:#ffaa00;">
+    <h2 style="color:#ffaa00;font-size:10px;">📋 REGISTRO DE MOVIMIENTOS</h2>
+    <p style="font-size:7px;color:#aaa;line-height:1.7;">
+        Estado actual:
+        <strong style="color: {% if registro_activo %}#ffaa00{% else %}#00ff00{% endif %};">
+            {% if registro_activo %}ACTIVADO 📋{% else %}DESACTIVADO{% endif %}
+        </strong>
+        <br>Graba todas las ganancias y pérdidas de Perikoins durante 10 min. Luego se borra solo.
+    </p>
+    <form method="POST" action="/admin">
+        <input type="hidden" name="accion_admin" value="registro">
+        <button class="btn {% if registro_activo %}btn-green{% else %}btn-red{% endif %}" type="submit">
+            {% if registro_activo %}DESACTIVAR REGISTRO{% else %}ACTIVAR REGISTRO{% endif %}
+        </button>
+    </form>
+
+    {% if registro_activo and registro_movimientos %}
+    <div style="margin-top:10px;max-height:300px;overflow-y:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:7px;">
+            <tr style="color:#ffaa00;">
+                <th style="padding:3px;border:1px solid #333;text-align:left;">HACE</th>
+                <th style="padding:3px;border:1px solid #333;text-align:left;">JUGADOR</th>
+                <th style="padding:3px;border:1px solid #333;text-align:left;">TIPO</th>
+                <th style="padding:3px;border:1px solid #333;text-align:right;">CANTIDAD</th>
+            </tr>
+            {% for m in registro_movimientos %}
+            <tr style="color:{% if m.tipo == 'Ganó' %}#00ff00{% else %}#ff4444{% endif %};">
+                <td style="padding:2px;border:1px solid #222;">{{ m.hace }}</td>
+                <td style="padding:2px;border:1px solid #222;">{{ m.usuario }}</td>
+                <td style="padding:2px;border:1px solid #222;">{{ m.tipo }}</td>
+                <td style="padding:2px;border:1px solid #222;text-align:right;">{{ m.cantidad }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    {% elif registro_activo %}
+    <p style="font-size:7px;color:#666;margin-top:8px;">Sin movimientos aún…</p>
+    {% endif %}
+</div>
+
+
 <div class="chest">
 
 <h2 style="color:#00ffcc;font-size:10px;">
@@ -4454,7 +4511,7 @@ type="submit"
 
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
-    global MODO_MANTENIMIENTO, MODO_CARNAVAL
+    global MODO_MANTENIMIENTO, MODO_CARNAVAL, REGISTRO_ACTIVO, REGISTRO_MOVIMIENTOS
     usuario = usuario_actual()
 
     if not usuario:
@@ -4479,7 +4536,9 @@ def admin():
                 HTML_ADMIN,
                 mensaje=mensaje,
                 mantenimiento=MODO_MANTENIMIENTO,
-                carnaval=MODO_CARNAVAL
+                carnaval=MODO_CARNAVAL,
+                registro_activo=REGISTRO_ACTIVO,
+                registro_movimientos=[]
             )
 
         if accion_admin == "carnaval":
@@ -4493,7 +4552,26 @@ def admin():
                 HTML_ADMIN,
                 mensaje=mensaje,
                 mantenimiento=MODO_MANTENIMIENTO,
-                carnaval=MODO_CARNAVAL
+                carnaval=MODO_CARNAVAL,
+                registro_activo=REGISTRO_ACTIVO,
+                registro_movimientos=[]
+            )
+
+        if accion_admin == "registro":
+            REGISTRO_ACTIVO = not REGISTRO_ACTIVO
+            if REGISTRO_ACTIVO:
+                REGISTRO_MOVIMIENTOS = []  # limpiar al activar
+                mensaje = "📋 Registro de movimientos ACTIVADO — grabando por 10 min."
+            else:
+                REGISTRO_MOVIMIENTOS = []
+                mensaje = "📋 Registro de movimientos DESACTIVADO y limpiado."
+            return render_template_string(
+                HTML_ADMIN,
+                mensaje=mensaje,
+                mantenimiento=MODO_MANTENIMIENTO,
+                carnaval=MODO_CARNAVAL,
+                registro_activo=REGISTRO_ACTIVO,
+                registro_movimientos=[]
             )
 
         if accion_admin == "mensaje_global":
@@ -4598,11 +4676,31 @@ def admin():
                             f"Perikoins a {destino}."
                         )
 
+    # Limpiar registros mayores a 10 min
+    if REGISTRO_ACTIVO:
+        import time as _time
+        ahora = _time.time()
+        REGISTRO_MOVIMIENTOS = [
+            m for m in REGISTRO_MOVIMIENTOS
+            if ahora - m["timestamp"] < REGISTRO_DURACION
+        ]
+        # Calcular tiempo relativo para la plantilla
+        for m in REGISTRO_MOVIMIENTOS:
+            segs = int(ahora - m["timestamp"])
+            if segs < 60:
+                m["hace"] = f"{segs}s"
+            else:
+                m["hace"] = f"{segs // 60}m {segs % 60}s"
+
+    movimientos_para_mostrar = REGISTRO_MOVIMIENTOS if REGISTRO_ACTIVO else []
+
     return render_template_string(
         HTML_ADMIN,
         mensaje=mensaje,
         mantenimiento=MODO_MANTENIMIENTO,
-        carnaval=MODO_CARNAVAL
+        carnaval=MODO_CARNAVAL,
+        registro_activo=REGISTRO_ACTIVO,
+        registro_movimientos=movimientos_para_mostrar
     )
 
 @app.route("/admin/eliminar", methods=["POST"])
@@ -4626,7 +4724,9 @@ def admin_eliminar():
             HTML_ADMIN,
             mensaje="Debes indicar un usuario.",
             mantenimiento=MODO_MANTENIMIENTO,
-            carnaval=MODO_CARNAVAL
+            carnaval=MODO_CARNAVAL,
+            registro_activo=REGISTRO_ACTIVO,
+            registro_movimientos=[]
         )
 
     if destino.lower() == "periko":
@@ -4634,7 +4734,9 @@ def admin_eliminar():
             HTML_ADMIN,
             mensaje="No puedes eliminar la cuenta PERIKO.",
             mantenimiento=MODO_MANTENIMIENTO,
-            carnaval=MODO_CARNAVAL
+            carnaval=MODO_CARNAVAL,
+            registro_activo=REGISTRO_ACTIVO,
+            registro_movimientos=[]
         )
 
     db = get_db()
@@ -4681,7 +4783,9 @@ def admin_eliminar():
         HTML_ADMIN,
         mensaje=mensaje,
         mantenimiento=MODO_MANTENIMIENTO,
-        carnaval=MODO_CARNAVAL
+        carnaval=MODO_CARNAVAL,
+        registro_activo=REGISTRO_ACTIVO,
+        registro_movimientos=[]
     )
 
 @app.route("/logout")
