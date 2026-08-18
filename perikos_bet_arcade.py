@@ -721,6 +721,9 @@ button {
 .game-card.g-blackjack { border-color:#ff4444; box-shadow:0 0 10px rgba(255,68,68,.3); }
 .game-card.g-blackjack:hover { box-shadow:0 0 20px #ff4444; }
 
+.game-card.g-soon { border-color:#444; box-shadow:none; background:linear-gradient(145deg,#111,#1a1a1a); }
+.game-card.g-soon:hover { transform:none; filter:none; box-shadow:none; }
+
 @media (max-width:380px) {
     .game-card .game-icon { font-size:24px; }
     .game-card .game-name { font-size:6px; }
@@ -1746,6 +1749,11 @@ SELECCIONA UN JUEGO
 <span class="game-icon">🃏</span>
 <span class="game-name">BLACKJACK</span>
 </a>
+
+<div class="game-card g-soon" style="cursor:not-allowed;opacity:.5;pointer-events:none;">
+<span class="game-icon">❓</span>
+<span class="game-name">COMING SOON</span>
+</div>
 
 </div>
 
