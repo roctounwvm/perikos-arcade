@@ -1547,7 +1547,7 @@ label { color: #ff88ff; }
 .game-card .game-icon { filter: hue-rotate(90deg); }
 </style>
 <div class="carnaval-banner">
-    🎭 ¡MODO CARNAVAL ACTIVADO! 🎭 — Todas las ganancias x2 — 🎉🎊
+    🎭 ¡MODO CARNAVAL ACTIVADO! 🎭 — Ganancias x2 · EXP x2 — 🎉🎊
 </div>
 {% endif %}
 
@@ -2029,7 +2029,8 @@ def procesar_apuesta(
     db.commit()
 
     if ganado:
-        dar_exp(usuario["username"])
+        exp_cantidad = EXP_POR_VICTORIA * 2 if MODO_CARNAVAL else EXP_POR_VICTORIA
+        dar_exp(usuario["username"], cantidad=exp_cantidad)
 
     return ganado, mensaje
 
@@ -4484,7 +4485,7 @@ def admin():
         if accion_admin == "carnaval":
             MODO_CARNAVAL = not MODO_CARNAVAL
             mensaje = (
-                "🎭 Modo carnaval ACTIVADO — ganancias x2!"
+                "🎭 Modo carnaval ACTIVADO — ganancias x2 · EXP x2!"
                 if MODO_CARNAVAL
                 else "Modo carnaval DESACTIVADO."
             )
