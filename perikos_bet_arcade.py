@@ -78,6 +78,7 @@ AVATARES_DB = {
 }
 
 MODO_MANTENIMIENTO = False
+MODO_CARNAVAL = False
 COSTO_MAQUINA_COLORES = 10000  # cada giro cuesta 10,000
 
 COLORES_NOMBRE = {
@@ -1284,9 +1285,35 @@ select:focus {
     50% { transform:scale(1.18); filter:brightness(1.8); }
 }
 
+.carnaval-banner {
+    background: linear-gradient(90deg, #ff00ff, #ff6600, #ffff00, #00ff00, #00ffff, #ff00ff);
+    background-size: 400% 100%;
+    animation: carnaval-gradient 3s linear infinite;
+    color: #fff;
+    text-align: center;
+    padding: 10px 0;
+    font-weight: bold;
+    font-size: 1.1em;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    border-bottom: 3px solid #ff00ff;
+}
+
+@keyframes carnaval-gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
 </style>
 </head>
 <body>
+
+{% if carnaval %}
+<style>body { filter: invert(1) hue-rotate(180deg); }</style>
+<div class="carnaval-banner">
+    🎭 ¡MODO CARNAVAL ACTIVADO! 🎭 — Todas las ganancias x2 — 🎉🎊
+</div>
+{% endif %}
 
 {% if global_mensaje %}
 <div class="global-banner">
@@ -1527,7 +1554,7 @@ def contexto_global():
         # Un anuncio nunca debe impedir que cargue el arcade.
         print("ERROR AL CARGAR MENSAJE GLOBAL:", e)
 
-    return {"global_mensaje": global_mensaje}
+    return {"global_mensaje": global_mensaje, "carnaval": MODO_CARNAVAL}
 
 
 HTML_MENU = CSS + """
@@ -1720,7 +1747,12 @@ def procesar_apuesta(
             return False, "Saldo insuficiente."
 
         if ganado:
-            nuevo_saldo = saldo + (apuesta * multiplicador)
+            mult_real = multiplicador
+            if MODO_CARNAVAL:
+                mult_real = multiplicador * 2
+                if mensaje_gana:
+                    mensaje_gana += " 🎉 ¡CARNAVAL x2!"
+            nuevo_saldo = saldo + (apuesta * mult_real)
             mensaje = mensaje_gana
         else:
             nuevo_saldo = saldo - apuesta
@@ -3873,6 +3905,24 @@ HTML_ADMIN = CSS + """
 </div>
 
 
+<div class="chest" style="border-color:#ff00ff;">
+    <h2 style="color:#ff00ff;font-size:10px;">🎭 MODO CARNAVAL</h2>
+    <p style="font-size:7px;color:#aaa;line-height:1.7;">
+        Estado actual: 
+        <strong style="color: {% if carnaval %}#ff00ff{% else %}#00ff00{% endif %};">
+            {% if carnaval %}ACTIVADO 🎉{% else %}DESACTIVADO{% endif %}
+        </strong>
+        <br>Si está activo: colores invertidos + ganancias x2 en todos los juegos.
+    </p>
+    <form method="POST" action="/admin">
+        <input type="hidden" name="accion_admin" value="carnaval">
+        <button class="btn {% if carnaval %}btn-green{% else %}btn-red{% endif %}" type="submit">
+            {% if carnaval %}DESACTIVAR CARNAVAL{% else %}ACTIVAR CARNAVAL{% endif %}
+        </button>
+    </form>
+</div>
+
+
 <div class="chest">
 
 <h2 style="color:#00ffcc;font-size:10px;">
@@ -4028,7 +4078,7 @@ type="submit"
 
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
-    global MODO_MANTENIMIENTO
+    global MODO_MANTENIMIENTO, MODO_CARNAVAL
     usuario = usuario_actual()
 
     if not usuario:
@@ -4052,7 +4102,22 @@ def admin():
             return render_template_string(
                 HTML_ADMIN,
                 mensaje=mensaje,
-                mantenimiento=MODO_MANTENIMIENTO
+                mantenimiento=MODO_MANTENIMIENTO,
+                carnaval=MODO_CARNAVAL
+            )
+
+        if accion_admin == "carnaval":
+            MODO_CARNAVAL = not MODO_CARNAVAL
+            mensaje = (
+                "🎭 Modo carnaval ACTIVADO — ganancias x2!"
+                if MODO_CARNAVAL
+                else "Modo carnaval DESACTIVADO."
+            )
+            return render_template_string(
+                HTML_ADMIN,
+                mensaje=mensaje,
+                mantenimiento=MODO_MANTENIMIENTO,
+                carnaval=MODO_CARNAVAL
             )
 
         if accion_admin == "mensaje_global":
@@ -4160,7 +4225,8 @@ def admin():
     return render_template_string(
         HTML_ADMIN,
         mensaje=mensaje,
-        mantenimiento=MODO_MANTENIMIENTO
+        mantenimiento=MODO_MANTENIMIENTO,
+        carnaval=MODO_CARNAVAL
     )
 
 @app.route("/admin/eliminar", methods=["POST"])
@@ -4182,13 +4248,17 @@ def admin_eliminar():
     if not destino:
         return render_template_string(
             HTML_ADMIN,
-            mensaje="Debes indicar un usuario."
+            mensaje="Debes indicar un usuario.",
+            mantenimiento=MODO_MANTENIMIENTO,
+            carnaval=MODO_CARNAVAL
         )
 
     if destino.lower() == "periko":
         return render_template_string(
             HTML_ADMIN,
-            mensaje="No puedes eliminar la cuenta PERIKO."
+            mensaje="No puedes eliminar la cuenta PERIKO.",
+            mantenimiento=MODO_MANTENIMIENTO,
+            carnaval=MODO_CARNAVAL
         )
 
     db = get_db()
@@ -4233,7 +4303,9 @@ def admin_eliminar():
 
     return render_template_string(
         HTML_ADMIN,
-        mensaje=mensaje
+        mensaje=mensaje,
+        mantenimiento=MODO_MANTENIMIENTO,
+        carnaval=MODO_CARNAVAL
     )
 
 @app.route("/logout")
