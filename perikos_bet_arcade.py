@@ -401,6 +401,20 @@ def init_db():
                 JSONB NOT NULL DEFAULT '["BLANCO"]'::jsonb
             """)
 
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS mensajes_globales (
+                    id BIGSERIAL PRIMARY KEY,
+                    mensaje TEXT NOT NULL,
+                    activo BOOLEAN NOT NULL DEFAULT TRUE,
+                    creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                )
+            """)
+
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_mensajes_globales_activo
+                ON mensajes_globales(activo, creado_en DESC)
+            """)
+
         conn.commit()
 
     finally:
@@ -972,9 +986,226 @@ td {
     }
 }
 
+/* ================================
+   ANIMACIONES ARCADE
+================================ */
+
+.arcade-box {
+    animation:gameEntry .45s ease-out;
+}
+
+.global-banner {
+    width:92%;
+    max-width:560px;
+    position:fixed;
+    top:12px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:9999;
+    background:rgba(0,0,0,.94);
+    border:2px solid #ffff00;
+    color:#ffff00;
+    box-shadow:0 0 18px #ffff00;
+    border-radius:10px;
+    padding:12px 14px;
+    font-size:8px;
+    line-height:1.6;
+    text-align:center;
+    animation:bannerDrop .55s ease-out, bannerPulse 2.5s ease-in-out infinite;
+}
+
+.global-banner-icon {
+    display:inline-block;
+    margin-right:6px;
+    animation:arcadePulse 1.2s infinite;
+}
+
+.game-icon {
+    animation:floatIcon 1.8s ease-in-out infinite;
+    transform-origin:center;
+    text-shadow:0 0 18px currentColor;
+}
+
+[data-game="DADOS"] .game-icon {
+    animation:diceRoll 1.4s ease-in-out infinite;
+}
+
+[data-game="RULETA ROYALE"] .game-icon {
+    animation:rouletteSpin 2.2s linear infinite;
+}
+
+[data-game="CARA O CRUZ"] .game-icon {
+    animation:coinFlip 1.5s ease-in-out infinite;
+}
+
+[data-game="MAYOR O MENOR"] .game-icon,
+[data-game="BLACKJACK"] .game-icon {
+    animation:cardDeal 1.5s ease-in-out infinite;
+}
+
+[data-game="TRAGAPERRAS 8-BITS"] .game-icon {
+    animation:slotMachine 1.1s ease-in-out infinite;
+}
+
+[data-game="CARRERA DE PERIKOS"] .game-icon {
+    animation:raceIcon 1s ease-in-out infinite;
+}
+
+.game-result {
+    animation:resultPop .5s cubic-bezier(.2,.8,.2,1);
+    transform-origin:center;
+}
+
+.game-message {
+    animation:messageAppear .45s ease-out;
+}
+
+select {
+    transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+
+select:focus {
+    transform:scale(1.02);
+    box-shadow:0 0 16px #00ffcc;
+}
+
+.btn, .chip, .allin {
+    position:relative;
+    overflow:hidden;
+}
+
+.btn::after, .chip::after, .allin::after {
+    content:"";
+    position:absolute;
+    top:-60%;
+    left:-100%;
+    width:55%;
+    height:220%;
+    background:rgba(255,255,255,.22);
+    transform:rotate(20deg);
+    transition:left .45s ease;
+    pointer-events:none;
+}
+
+.btn:hover::after, .chip:hover::after, .allin:hover::after {
+    left:135%;
+}
+
+.slot-machine {
+    display:flex;
+    justify-content:center;
+    gap:8px;
+    background:#000;
+    border:3px solid #00ffcc;
+    padding:15px;
+    border-radius:8px;
+    margin:15px 0;
+    box-shadow:0 0 20px rgba(0,255,204,.35);
+}
+
+.slot-reel {
+    width:65px;
+    height:65px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#1a0033;
+    border:2px solid #ff0055;
+    border-radius:8px;
+    font-size:28px;
+    opacity:0;
+    transform:translateY(-28px) scale(.7);
+}
+
+.slot-reel.show {
+    animation:slotReveal .55s cubic-bezier(.2,.9,.2,1) forwards;
+}
+
+.slot-reel.jackpot {
+    animation:slotReveal .55s cubic-bezier(.2,.9,.2,1) forwards, jackpotPulse .45s ease-in-out .55s 3;
+}
+
+@keyframes gameEntry {
+    from { opacity:0; transform:translateY(12px) scale(.97); }
+    to { opacity:1; transform:translateY(0) scale(1); }
+}
+
+@keyframes bannerDrop {
+    from { opacity:0; transform:translate(-50%,-25px) scale(.9); }
+    to { opacity:1; transform:translate(-50%,0) scale(1); }
+}
+
+@keyframes bannerPulse {
+    0%,100% { box-shadow:0 0 12px #ffff00; }
+    50% { box-shadow:0 0 25px #ffff00; }
+}
+
+@keyframes floatIcon {
+    0%,100% { transform:translateY(0) rotate(-2deg); }
+    50% { transform:translateY(-9px) rotate(2deg); }
+}
+
+@keyframes diceRoll {
+    0% { transform:rotate(0) scale(1); }
+    25% { transform:rotate(90deg) scale(1.08); }
+    50% { transform:rotate(180deg) scale(1); }
+    75% { transform:rotate(270deg) scale(1.08); }
+    100% { transform:rotate(360deg) scale(1); }
+}
+
+@keyframes rouletteSpin {
+    to { transform:rotate(360deg); }
+}
+
+@keyframes coinFlip {
+    0%,100% { transform:rotateY(0) scale(1); }
+    50% { transform:rotateY(180deg) scale(1.12); }
+}
+
+@keyframes cardDeal {
+    0% { transform:translateX(-18px) rotate(-8deg) scale(.85); opacity:.4; }
+    60% { transform:translateX(5px) rotate(3deg) scale(1.08); opacity:1; }
+    100% { transform:translateX(0) rotate(0) scale(1); }
+}
+
+@keyframes slotMachine {
+    0%,100% { transform:scale(1) rotate(0); }
+    25% { transform:scale(1.08) rotate(-4deg); }
+    75% { transform:scale(1.08) rotate(4deg); }
+}
+
+@keyframes raceIcon {
+    0%,100% { transform:translateX(0) scale(1); }
+    50% { transform:translateX(9px) scale(1.1); }
+}
+
+@keyframes resultPop {
+    0% { opacity:0; transform:scale(.72) translateY(8px); }
+    70% { transform:scale(1.05) translateY(-2px); }
+    100% { opacity:1; transform:scale(1) translateY(0); }
+}
+
+@keyframes slotReveal {
+    0% { opacity:0; transform:translateY(-28px) scale(.7) rotateX(80deg); }
+    65% { opacity:1; transform:translateY(5px) scale(1.08) rotateX(-8deg); }
+    100% { opacity:1; transform:translateY(0) scale(1) rotateX(0); }
+}
+
+@keyframes jackpotPulse {
+    0%,100% { transform:scale(1); filter:brightness(1); }
+    50% { transform:scale(1.18); filter:brightness(1.8); }
+}
+
 </style>
 </head>
 <body>
+
+{% if global_mensaje %}
+<div class="global-banner">
+    <span class="global-banner-icon">📢</span>
+    <span>{{ global_mensaje }}</span>
+</div>
+{% endif %}
 """
 
 
@@ -1186,6 +1417,31 @@ def usuario_actual():
     return obtener_usuario(session["user"])
 
 
+@app.context_processor
+def contexto_global():
+    """Expone el último mensaje global activo en todas las páginas."""
+    global_mensaje = None
+
+    try:
+        db = get_db()
+        with db.cursor() as cur:
+            cur.execute("""
+                SELECT mensaje
+                FROM mensajes_globales
+                WHERE activo = TRUE
+                ORDER BY creado_en DESC
+                LIMIT 1
+            """)
+            fila = cur.fetchone()
+            if fila:
+                global_mensaje = fila[0]
+    except Exception as e:
+        # Un anuncio nunca debe impedir que cargue el arcade.
+        print("ERROR AL CARGAR MENSAJE GLOBAL:", e)
+
+    return {"global_mensaje": global_mensaje}
+
+
 HTML_MENU = CSS + """
 
 <div class="arcade-box">
@@ -1391,7 +1647,7 @@ def procesar_apuesta(
 
 HTML_JUEGO = CSS + """
 
-<div class="arcade-box">
+<div class="arcade-box" data-game="{{ titulo }}">
 
 <h1>{{ titulo }}</h1>
 
@@ -1405,8 +1661,16 @@ SALDO: {{ usuario.perikoins }} P
 </div>
 {% endif %}
 
-{% if resultado %}
-<div class="win">
+{% if slot_resultados %}
+<div class="game-result">
+    <div class="slot-machine" id="slotMachine">
+        {% for simbolo in slot_resultados %}
+        <div class="slot-reel" data-slot-index="{{ loop.index0 }}">{{ simbolo }}</div>
+        {% endfor %}
+    </div>
+</div>
+{% elif resultado %}
+<div class="win game-result">
 RESULTADO:<br><br>
 {{ resultado }}
 </div>
@@ -1415,11 +1679,11 @@ RESULTADO:<br><br>
 {% if mensaje %}
 
 {% if victoria %}
-<div class="win">
+<div class="win game-message">
 ✨ {{ mensaje }} ✨
 </div>
 {% else %}
-<div class="msg">
+<div class="msg game-message">
 {{ mensaje }}
 </div>
 {% endif %}
@@ -1483,6 +1747,25 @@ ALL IN
 </a>
 
 </div>
+
+{% if slot_resultados %}
+<script>
+(function () {
+    const reels = document.querySelectorAll(".slot-reel");
+    reels.forEach((reel, index) => {
+        setTimeout(() => {
+            reel.classList.add("show");
+        }, index * 1000);
+    });
+
+    {% if victoria and slot_jackpot %}
+    setTimeout(() => {
+        reels.forEach(reel => reel.classList.add("jackpot"));
+    }, 3100);
+    {% endif %}
+})();
+</script>
+{% endif %}
 
 </body>
 </html>
@@ -1781,7 +2064,13 @@ def cartas():
         )
 
         eleccion = request.form.get("eleccion")
-        resultado = random.randint(1, 13)
+
+        # La siguiente carta SIEMPRE será distinta a la carta base.
+        cartas_posibles = [
+            n for n in range(1, 14)
+            if n != carta_base
+        ]
+        resultado = random.choice(cartas_posibles)
 
         if eleccion == "MAYOR":
             victoria = resultado > carta_base
@@ -1859,6 +2148,8 @@ def slots():
     mensaje = ""
     resultado = None
     victoria = False
+    slot_resultados = None
+    slot_jackpot = False
 
     if request.method == "POST":
         apuesta = calcular_apuesta_monto(
@@ -1877,9 +2168,11 @@ def slots():
         r2 = random.choice(simbolos)
         r3 = random.choice(simbolos)
 
+        slot_resultados = [r1, r2, r3]
         resultado = f"{r1} {r2} {r3}"
 
         if r1 == r2 == r3:
+            slot_jackpot = True
             multiplicadores = {
                 "🪙": 50,
                 "💎": 20,
@@ -1945,7 +2238,9 @@ def slots():
         visual="🎰",
         resultado=resultado,
         mensaje=mensaje,
-        victoria=victoria
+        victoria=victoria,
+        slot_resultados=slot_resultados,
+        slot_jackpot=slot_jackpot
     )
 
 
@@ -3519,6 +3814,52 @@ type="submit"
 </div>
 
 
+<div class="chest" style="border-color:#00ffff;">
+
+<h2 style="color:#00ffff;font-size:10px;">
+📢 MENSAJE GLOBAL
+</h2>
+
+<p style="font-size:7px;color:#aaa;line-height:1.7;">
+Escribe un anuncio y aparecerá automáticamente a TODOS los jugadores.
+Solo habrá un mensaje global activo a la vez.
+</p>
+
+<form method="POST" action="/admin">
+    <input type="hidden" name="accion_admin" value="mensaje_global">
+
+    <label>MENSAJE PARA TODOS</label>
+
+    <textarea
+        name="mensaje_global"
+        maxlength="500"
+        rows="5"
+        required
+        style="width:100%;padding:12px;margin:8px 0 15px;background:#000;border:2px solid #00ffff;color:#fff;border-radius:5px;font-family:'Press Start 2P',cursive;font-size:8px;resize:vertical;"
+        placeholder="📢 ¡NUEVO EVENTO! ..."
+    ></textarea>
+
+    <button class="btn btn-green" type="submit">
+        📢 PUBLICAR PARA TODOS
+    </button>
+</form>
+
+<form method="POST" action="/admin" style="margin-top:8px;">
+    <input type="hidden" name="accion_admin" value="borrar_mensaje_global">
+    <button class="btn btn-red" type="submit">
+        🗑️ QUITAR MENSAJE GLOBAL
+    </button>
+</form>
+
+{% if global_mensaje %}
+<div class="msg" style="border:2px solid #00ffff;padding:10px;">
+    ACTUAL:<br><br>{{ global_mensaje }}
+</div>
+{% endif %}
+
+</div>
+
+
 <div class="chest" style="border-color:#ff0000;">
 
 <h2 style="color:#ff0000;font-size:10px;">
@@ -3612,59 +3953,107 @@ def admin():
                 mantenimiento=MODO_MANTENIMIENTO
             )
 
-        destino = request.form.get(
-            "destino",
-            ""
-        ).strip()
+        if accion_admin == "mensaje_global":
+            texto_global = request.form.get(
+                "mensaje_global",
+                ""
+            ).strip()
 
-        try:
-            cantidad = int(
-                request.form.get(
-                    "cantidad",
-                    0
-                )
-            )
-        except ValueError:
-            cantidad = 0
+            if not texto_global:
+                mensaje = "El mensaje global no puede estar vacío."
+            elif len(texto_global) > 500:
+                mensaje = "El mensaje global es demasiado largo."
+            else:
+                db = get_db()
+                try:
+                    with db.cursor() as cur:
+                        cur.execute("""
+                            UPDATE mensajes_globales
+                            SET activo = FALSE
+                            WHERE activo = TRUE
+                        """)
+                        cur.execute("""
+                            INSERT INTO mensajes_globales
+                            (mensaje, activo)
+                            VALUES (%s, TRUE)
+                        """, (texto_global,))
+                    db.commit()
+                    mensaje = "📢 Mensaje global publicado para TODOS los jugadores."
+                except Exception as e:
+                    db.rollback()
+                    print("ERROR AL PUBLICAR MENSAJE GLOBAL:", e)
+                    mensaje = "No se pudo publicar el mensaje global."
 
-        if cantidad <= 0:
-            mensaje = "Cantidad invalida."
-
-        elif not destino:
-            mensaje = "Destino invalido."
+        elif accion_admin == "borrar_mensaje_global":
+            db = get_db()
+            try:
+                with db.cursor() as cur:
+                    cur.execute("""
+                        UPDATE mensajes_globales
+                        SET activo = FALSE
+                        WHERE activo = TRUE
+                    """)
+                db.commit()
+                mensaje = "🗑️ Mensaje global eliminado."
+            except Exception as e:
+                db.rollback()
+                print("ERROR AL BORRAR MENSAJE GLOBAL:", e)
+                mensaje = "No se pudo eliminar el mensaje global."
 
         else:
-            db = get_db()
+            destino = request.form.get(
+                "destino",
+                ""
+            ).strip()
 
-            with db.cursor() as cur:
-                cur.execute(
-                    """
-                    UPDATE usuarios
-                    SET
-                        perikoins = perikoins + %s,
-                        notif_regalo = notif_regalo + %s
-                    WHERE username = %s
-                    """,
-                    (
-                        cantidad,
-                        cantidad,
-                        destino
+            try:
+                cantidad = int(
+                    request.form.get(
+                        "cantidad",
+                        0
                     )
                 )
+            except ValueError:
+                cantidad = 0
 
-                if cur.rowcount == 0:
-                    db.rollback()
+            if cantidad <= 0:
+                mensaje = "Cantidad invalida."
 
-                    mensaje = (
-                        f"El usuario {destino} no existe."
+            elif not destino:
+                mensaje = "Destino invalido."
+
+            else:
+                db = get_db()
+
+                with db.cursor() as cur:
+                    cur.execute(
+                        """
+                        UPDATE usuarios
+                        SET
+                            perikoins = perikoins + %s,
+                            notif_regalo = notif_regalo + %s
+                        WHERE username = %s
+                        """,
+                        (
+                            cantidad,
+                            cantidad,
+                            destino
+                        )
                     )
-                else:
-                    db.commit()
 
-                    mensaje = (
-                        f"Regalaste {cantidad} "
-                        f"Perikoins a {destino}."
-                    )
+                    if cur.rowcount == 0:
+                        db.rollback()
+
+                        mensaje = (
+                            f"El usuario {destino} no existe."
+                        )
+                    else:
+                        db.commit()
+
+                        mensaje = (
+                            f"Regalaste {cantidad} "
+                            f"Perikoins a {destino}."
+                        )
 
     return render_template_string(
         HTML_ADMIN,
