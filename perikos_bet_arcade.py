@@ -585,7 +585,7 @@ body {
     background-size:30px 30px;
     color:#00ffcc;
     display:flex;
-    justify-content:center;
+    flex-direction:column;
     align-items:center;
     min-height:100vh;
     margin:0;
@@ -1296,6 +1296,10 @@ select:focus {
     font-size: 1.1em;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
     border-bottom: 3px solid #ff00ff;
+    width: 100%;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 100;
 }
 
 @keyframes carnaval-gradient {
@@ -1309,7 +1313,30 @@ select:focus {
 <body>
 
 {% if carnaval %}
-<style>body { filter: invert(1) hue-rotate(180deg); }</style>
+<style>
+.arcade-box {
+    border-color: #ff00ff;
+    box-shadow: 0 0 30px #ff00ff, inset 0 0 20px #ff00ff;
+}
+body {
+    background-color: #1a0022;
+    background-image:
+        linear-gradient(rgba(255,0,255,.18) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,0,255,.18) 1px, transparent 1px);
+    background-size: 30px 30px;
+}
+h1 { color: #ff00ff; }
+.btn { background: #ff00ff; border-bottom-color: #9900aa; }
+.btn-green { background: #00ffaa; }
+.btn-yellow { background: #ffff00; }
+.btn-red { background: #ff4466; }
+.btn-purple { background: #ff44ff; }
+input, select, textarea { border-color: #ff00ff; }
+label { color: #ff88ff; }
+.msg { border-color: #ff00ff; color: #ff88ff; }
+.chip { background: #ff00ff; border-bottom-color: #9900aa; }
+.link { color: #ff88ff; }
+</style>
 <div class="carnaval-banner">
     🎭 ¡MODO CARNAVAL ACTIVADO! 🎭 — Todas las ganancias x2 — 🎉🎊
 </div>
