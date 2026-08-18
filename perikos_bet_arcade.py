@@ -89,6 +89,23 @@ PRESTIGIO_PRECIO_BASE = 10_000_000_000_000_000   # 10 cuatrillones
 PRESTIGIO_PRECIO_TOPE = 5_150_000_000_000_000_000  # 5.15 quintillones
 
 
+# Sistema de nivel / EXP
+EXP_POR_VICTORIA = 10  # EXP ganada por cada partida ganada
+NIVEL_MAXIMO = 500     # Nivel maximo
+
+
+def exp_necesaria(nivel):
+    """EXP necesaria para subir del nivel actual al siguiente.
+    Nivel 1->2: 10 EXP
+    Nivel 2->3: 15 EXP
+    Nivel 3->4: 20 EXP
+    ...
+    Formula: 5 + (nivel * 5)
+    """
+    return 5 + (nivel * 5)
+
+
+
 def calcular_precio_prestigio(prestigio_actual):
     """
     Calcula el precio del siguiente prestigio.
@@ -470,6 +487,18 @@ def init_db():
             """)
 
             cur.execute("""
+                ALTER TABLE usuarios
+                ADD COLUMN IF NOT EXISTS nivel
+                INTEGER NOT NULL DEFAULT 1
+            """)
+
+            cur.execute("""
+                ALTER TABLE usuarios
+                ADD COLUMN IF NOT EXISTS exp
+                INTEGER NOT NULL DEFAULT 0
+            """)
+
+            cur.execute("""
                 CREATE TABLE IF NOT EXISTS mensajes_globales (
                     id BIGSERIAL PRIMARY KEY,
                     mensaje TEXT NOT NULL,
@@ -612,6 +641,50 @@ def obtener_estilo_color(color_nombre):
         )
 
     return f"color:{css};"
+
+
+def dar_exp(username, cantidad=EXP_POR_VICTORIA):
+    """Otorga EXP al usuario tras ganar una partida.
+    Si la EXP acumulada alcanza el requerido, sube de nivel.
+    La EXP se reinicia a 0 al subir de nivel.
+    Puede subir multiples niveles de una vez.
+    """
+    db = get_db()
+
+    with db.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(
+            "SELECT nivel, exp FROM usuarios WHERE username = %s FOR UPDATE",
+            (username,)
+        )
+        fila = cur.fetchone()
+
+        if not fila:
+            db.rollback()
+            return
+
+        nivel_actual = fila["nivel"]
+        exp_actual = fila["exp"]
+
+        if nivel_actual >= NIVEL_MAXIMO:
+            db.commit()
+            return
+
+        exp_actual += cantidad
+
+        while nivel_actual < NIVEL_MAXIMO and exp_actual >= exp_necesaria(nivel_actual):
+            exp_actual -= exp_necesaria(nivel_actual)
+            nivel_actual += 1
+
+        if nivel_actual >= NIVEL_MAXIMO:
+            nivel_actual = NIVEL_MAXIMO
+            exp_actual = 0
+
+        cur.execute(
+            "UPDATE usuarios SET nivel = %s, exp = %s WHERE username = %s",
+            (nivel_actual, exp_actual, username)
+        )
+
+    db.commit()
 
 
 CSS = """
@@ -1954,6 +2027,9 @@ def procesar_apuesta(
         )
 
     db.commit()
+
+    if ganado:
+        dar_exp(usuario["username"])
 
     return ganado, mensaje
 
@@ -3877,6 +3953,12 @@ HTML_PERFIL = CSS + """
 <span style="color:#ffaa00;font-size:9px;">⭐ PRESTIGIO: {{ usuario.prestigio }}</span>
 </div>
 
+<div class="badge" style="background:transparent;">
+<span style="color:#00ffcc;font-size:9px;">🅑 NIVEL {{ usuario.nivel }}</span>
+<br>
+<span style="color:#aaa;font-size:7px;">EXP: {{ usuario.exp }} / {{ exp_siguiente }}</span>
+</div>
+
 <p style="font-size:8px">
 AVATARES: {{ desbloqueados|length }}/50
 </p>
@@ -3989,6 +4071,8 @@ def perfil():
     avatar = AVATARES_DB.get(usuario["avatar_activo"], AVATARES_DB[1])
     color_estilo = obtener_estilo_color(usuario["color_nombre"])
 
+    exp_siguiente = exp_necesaria(usuario["nivel"]) if usuario["nivel"] < NIVEL_MAXIMO else 0
+
     return render_template_string(
         HTML_PERFIL,
         usuario=usuario,
@@ -3999,7 +4083,8 @@ def perfil():
         colores_desbloqueados=colores_desbloqueados,
         color_estilo=color_estilo,
         mensaje_color=mensaje_color,
-        color_ganado=color_ganado
+        color_ganado=color_ganado,
+        exp_siguiente=exp_siguiente
     )
 
 
@@ -4016,6 +4101,7 @@ HTML_RANKING = CSS + """
 <tr>
 <th>POS</th>
 <th>JUGADOR</th>
+<th>🅑</th>
 <th>⭐</th>
 <th>PERIKOINS</th>
 </tr>
@@ -4032,6 +4118,10 @@ HTML_RANKING = CSS + """
     <span style="{{ j.color_estilo }}">
         {{ j.username }}
     </span>
+</td>
+
+<td style="color:#00ffcc;">
+{{ j.nivel }}
 </td>
 
 <td style="color:#ffaa00;">
@@ -4078,7 +4168,8 @@ def ranking():
                 perikoins,
                 avatar_activo,
                 color_nombre,
-                prestigio
+                prestigio,
+                nivel
             FROM usuarios
             ORDER BY perikoins DESC
             LIMIT 50
@@ -4099,6 +4190,7 @@ def ranking():
             "username": j["username"],
             "perikoins": j["perikoins"],
             "prestigio": j["prestigio"],
+            "nivel": j["nivel"],
             "avatar": avatar,
             "color_estilo": obtener_estilo_color(
                 j["color_nombre"]
