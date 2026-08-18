@@ -77,6 +77,9 @@ AVATARES_DB = {
     50: {"nombre": "Periko Absoluto", "rareza": "SECRETO", "color": "#ffff00", "icon": "👑"}
 }
 
+MODO_MANTENIMIENTO = False
+COSTO_MAQUINA_COLORES = 10000
+
 COLORES_NOMBRE = {
     "BLANCO": {
         "nombre": "Blanco",
@@ -1143,6 +1146,39 @@ def login():
     return render_template_string(HTML_LOGIN)
 
 
+def comprobar_mantenimiento():
+    if not MODO_MANTENIMIENTO:
+        return None
+
+    if request.endpoint in {"login", "logout", "admin", "health"}:
+        return None
+
+    if session.get("user"):
+        usuario = obtener_usuario(session["user"])
+        if usuario and usuario["username"].lower() == "periko":
+            return None
+
+    return render_template_string(
+        CSS + """
+        <div class="arcade-box">
+            <h1 style="color:#ffff00">⚠️ MANTENIMIENTO</h1>
+            <div class="msg">
+                PERIKOS BET ARCADE ESTA EN MANTENIMIENTO.
+                <br><br>
+                SOLO LA CUENTA PERIKO PUEDE ENTRAR.
+            </div>
+        </div>
+        </body>
+        </html>
+        """
+    ), 503
+
+
+@app.before_request
+def modo_mantenimiento():
+    return comprobar_mantenimiento()
+
+
 def usuario_actual():
     if "user" not in session:
         return None
@@ -1213,6 +1249,10 @@ SELECCIONA UN JUEGO
 
 <a class="btn" href="/juego/derby">
 6. CARRERA DE PERIKOS
+</a>
+
+<a class="btn" href="/juego/blackjack">
+7. BLACKJACK
 </a>
 
 <a class="btn btn-yellow" href="/tienda">
@@ -1414,7 +1454,7 @@ RESULTADO:<br><br>
 
 <div class="grid">
 
-{% for cantidad in [10,50,100,250,500,1000] %}
+{% for cantidad in [10,50,100,250,500,1000,5000,10000,50000] %}
 
 <button
 class="chip"
@@ -1906,6 +1946,108 @@ def slots():
         resultado=resultado,
         mensaje=mensaje,
         victoria=victoria
+    )
+
+
+def valor_blackjack(mano):
+    total = 0
+    ases = 0
+    for carta in mano:
+        rango = carta[:-1]
+        if rango in ("J", "Q", "K"):
+            total += 10
+        elif rango == "A":
+            total += 11
+            ases += 1
+        else:
+            total += int(rango)
+    while total > 21 and ases:
+        total -= 10
+        ases -= 1
+    return total
+
+
+@app.route("/juego/blackjack", methods=["GET", "POST"])
+def blackjack():
+    usuario = usuario_actual()
+    if not usuario:
+        return redirect(url_for("login"))
+
+    mensaje = ""
+    resultado = None
+    victoria = False
+
+    if request.method == "POST":
+        apuesta = calcular_apuesta_monto(
+            request.form.get("apuesta"),
+            usuario["perikoins"]
+        )
+
+        if apuesta <= 0 or apuesta > usuario["perikoins"]:
+            mensaje = "Apuesta inválida o saldo insuficiente."
+        else:
+            mazo = [
+                f"{r}{p}"
+                for r in ["A","2","3","4","5","6","7","8","9","10","J","Q","K"]
+                for p in ["♠","♥","♦","♣"]
+            ]
+            random.shuffle(mazo)
+            jugador = [mazo.pop(), mazo.pop()]
+            crupier = [mazo.pop(), mazo.pop()]
+
+            while valor_blackjack(crupier) < 17:
+                crupier.append(mazo.pop())
+
+            pj = valor_blackjack(jugador)
+            pc = valor_blackjack(crupier)
+            resultado = (
+                f"TÚ: {' '.join(jugador)} = {pj}<br>"
+                f"CRUPIER: {' '.join(crupier)} = {pc}"
+            )
+
+            blackjack_natural = pj == 21 and len(jugador) == 2
+            crupier_blackjack = pc == 21 and len(crupier) == 2
+
+            if blackjack_natural and not crupier_blackjack:
+                victoria, mensaje = procesar_apuesta(
+                    usuario, apuesta, True, 3,
+                    f"BLACKJACK! Ganaste {apuesta * 3} Perikoins!", ""
+                )
+            elif pj > 21:
+                victoria, mensaje = procesar_apuesta(
+                    usuario, apuesta, False, 0, "",
+                    f"TE PASASTE ({pj}). Perdiste {apuesta} Perikoins."
+                )
+            elif pc > 21 or pj > pc:
+                victoria, mensaje = procesar_apuesta(
+                    usuario, apuesta, True, 2,
+                    f"GANASTE! Recibiste {apuesta * 2} Perikoins!", ""
+                )
+            elif pj == pc:
+                victoria, mensaje = procesar_apuesta(
+                    usuario, apuesta, True, 1,
+                    f"EMPATE. Recuperaste tus {apuesta} Perikoins!", ""
+                )
+            else:
+                victoria, mensaje = procesar_apuesta(
+                    usuario, apuesta, False, 0, "",
+                    f"PERDISTE. Perdiste {apuesta} Perikoins."
+                )
+
+            usuario = obtener_usuario(session["user"])
+
+    return render_template_string(
+        HTML_JUEGO,
+        titulo="BLACKJACK",
+        usuario=usuario,
+        visual="🃏",
+        resultado=resultado,
+        mensaje=mensaje,
+        victoria=victoria,
+        descripcion="BLACKJACK = x3 · VICTORIA = x2 · EMPATE = x1",
+        opciones=None,
+        label_opciones=None,
+        nombre_opciones=None
     )
 
 
@@ -2460,47 +2602,17 @@ COMPRAR {{ color.precio }} P
 
 
 <!-- ============================= -->
-<!-- COLORES DE MAQUINA -->
+<!-- MAQUINA DE COLORES -->
 <!-- ============================= -->
 
-<div
-class="chest"
-style="border-color:#ff00ff;"
->
-
-<h2 style="color:#ff00ff;font-size:10px;">
-🎰 COLORES DE LA MAQUINA
-</h2>
-
-<p
-style="
-font-size:7px;
-color:#aaa;
-line-height:1.8;
-"
->
-🔥 FUEGO<br>
-❄️ HIELO<br>
-🌈 NEON<br>
-🌌 GALAXIA<br>
-👑 DIVINO<br>
-<br>
-Estos colores son exclusivos
-de la maquina.
+<div class="chest" style="border-color:#ff00ff;">
+<h2 style="color:#ff00ff;font-size:10px;">🎰 MÁQUINA DE COLORES</h2>
+<p style="font-size:7px;color:#aaa;line-height:1.8;">
+Los colores exclusivos se consiguen girando la máquina desde tu perfil.<br>
+🔥 Fuego · ❄️ Hielo · 🌈 Neón · 🌌 Galaxia · 👑 Divino y muchos más.
 </p>
-
-<div
-style="
-font-size:7px;
-color:#ff00ff;
-margin-top:10px;
-"
->
-🔒 PROXIMAMENTE
+<a class="btn btn-purple" href="/perfil">🎰 IR A LA MÁQUINA</a>
 </div>
-
-</div>
-
 
 <a class="link" href="/menu">
 < VOLVER
@@ -2946,56 +3058,81 @@ HTML_PERFIL = CSS + """
 {{ avatar.nombre }}
 </div>
 
+<div class="name-color" style="{{ color_estilo }}">
+{{ usuario.username }}
+</div>
+
 <p style="font-size:8px">
-AVATARES:
-{{ desbloqueados|length }}/50
+AVATARES: {{ desbloqueados|length }}/50
 </p>
 
 <div class="avatar-grid">
-
 {% for aid,item in avatares.items() %}
-
 {% set tiene = aid in desbloqueados %}
+<form method="POST">
+<input type="hidden" name="accion" value="avatar">
+<input type="hidden" name="avatar_id" value="{{ aid }}">
+<button class="avatar-item {% if aid == usuario.avatar_activo %}active{% endif %} {% if not tiene %}locked{% endif %}" type="submit" {% if not tiene %}disabled{% endif %}>
+<div style="font-size:20px">{% if tiene %}{{ item.icon }}{% else %}🔒{% endif %}</div>
+<div style="color:{{ item.color }}">{{ item.rareza }}</div>
+</button>
+</form>
+{% endfor %}
+</div>
+
+<div class="machine">
+<div class="machine-icon">🎰</div>
+<h2 style="color:#ff00ff;font-size:11px;">MÁQUINA DE COLORES</h2>
+<p style="font-size:7px;color:#aaa;line-height:1.8;">
+GIRA LA MÁQUINA Y CONSIGUE UN COLOR EXCLUSIVO PARA TU PERFIL.<br>
+COSTO POR GIRO: <span style="color:#ffff00">100 P</span>
+</p>
+
+{% if mensaje_color %}
+<div class="{% if color_ganado %}win{% else %}msg{% endif %}">
+{{ mensaje_color }}
+</div>
+{% endif %}
+
+<div class="color-preview" style="{% if color_maquina %}color:{{ color_maquina.css }};{% endif %}">
+{% if color_maquina %}{{ color_maquina.nombre }}{% else %}???{% endif %}
+</div>
 
 <form method="POST">
-
-<input
-type="hidden"
-name="avatar_id"
-value="{{ aid }}"
->
-
-<button
-class="avatar-item
-{% if aid == usuario.avatar_activo %}active{% endif %}
-{% if not tiene %}locked{% endif %}"
-type="submit"
-{% if not tiene %}disabled{% endif %}
->
-
-<div style="font-size:20px">
-{% if tiene %}
-{{ item.icon }}
-{% else %}
-🔒
-{% endif %}
-</div>
-
-<div style="color:{{ item.color }}">
-{{ item.rareza }}
-</div>
-
-</button>
-
+<input type="hidden" name="accion" value="girar_maquina">
+<button class="btn btn-purple" type="submit">🎰 GIRAR POR 100 P</button>
 </form>
 
-{% endfor %}
-
+<p style="font-size:6px;color:#888;line-height:1.7;">
+RARO 45% · ÉPICO 30% · LEGENDARIO 15% · MÍTICO 8% · SECRETO 1.9% · ULTRA 0.1%
+</p>
 </div>
 
-<a class="link" href="/menu">
-< VOLVER
-</a>
+<div class="chest" style="border-color:#00ffcc;">
+<h2 style="color:#00ffcc;font-size:10px;">🎨 MIS COLORES</h2>
+<p style="font-size:7px;color:#aaa;">{{ colores_desbloqueados|length }} colores desbloqueados</p>
+
+{% for clave,color in colores.items() %}
+{% if clave in colores_desbloqueados %}
+<div class="color-card" style="border-color:{{ color.css }};">
+<div class="color-preview" style="color:{{ color.css }};">{{ color.nombre }}</div>
+<div style="font-size:7px;color:#aaa;">{{ color.rareza if color.tipo == 'MAQUINA' else 'TIENDA' }}</div>
+{% if usuario.color_nombre == clave %}
+<button class="btn btn-green" type="button" disabled>✓ EQUIPADO</button>
+{% else %}
+<form method="POST">
+<input type="hidden" name="accion" value="equipar_color">
+<input type="hidden" name="color" value="{{ clave }}">
+<button class="btn btn-yellow" type="submit">EQUIPAR</button>
+</form>
+{% endif %}
+</div>
+{% endif %}
+{% endfor %}
+</div>
+
+<a class="link" href="/tienda">🎨 CONSEGUIR MÁS COLORES EN LA TIENDA</a>
+<a class="link" href="/menu">< VOLVER</a>
 
 </div>
 
@@ -3011,54 +3148,153 @@ def perfil():
     if not usuario:
         return redirect(url_for("login"))
 
-    desbloqueados = cargar_avatares(
-        usuario["avatares_desbloqueados"]
-    )
+    desbloqueados = cargar_avatares(usuario["avatares_desbloqueados"])
+    colores_desbloqueados = cargar_avatares(usuario["colores_desbloqueados"])
+    mensaje_color = ""
+    color_ganado = False
+    color_maquina = None
 
     if request.method == "POST":
-        try:
-            avatar_id = int(
-                request.form.get("avatar_id", 1)
-            )
-        except ValueError:
-            avatar_id = 1
+        accion = request.form.get("accion")
 
-        if (
-            avatar_id in AVATARES_DB
-            and avatar_id in desbloqueados
-        ):
-            db = get_db()
+        if accion == "avatar":
+            try:
+                avatar_id = int(request.form.get("avatar_id", 1))
+            except (TypeError, ValueError):
+                avatar_id = 1
 
-            with db.cursor() as cur:
-                cur.execute(
-                    """
-                    UPDATE usuarios
-                    SET avatar_activo = %s
-                    WHERE username = %s
-                    """,
-                    (
-                        avatar_id,
-                        usuario["username"]
+            if avatar_id in AVATARES_DB and avatar_id in desbloqueados:
+                db = get_db()
+                with db.cursor() as cur:
+                    cur.execute(
+                        """
+                        UPDATE usuarios
+                        SET avatar_activo = %s
+                        WHERE username = %s
+                        """,
+                        (avatar_id, usuario["username"])
                     )
-                )
+                db.commit()
 
-            db.commit()
+        elif accion == "equipar_color":
+            clave = request.form.get("color")
+            if clave in COLORES_NOMBRE and clave in colores_desbloqueados:
+                db = get_db()
+                with db.cursor() as cur:
+                    cur.execute(
+                        """
+                        UPDATE usuarios
+                        SET color_nombre = %s
+                        WHERE username = %s
+                        """,
+                        (clave, usuario["username"])
+                    )
+                db.commit()
+                mensaje_color = f"🎨 Equipaste {COLORES_NOMBRE[clave]['nombre']}."
+                color_ganado = True
+            else:
+                mensaje_color = "No tienes desbloqueado este color."
 
-            usuario = obtener_usuario(
-                session["user"]
-            )
+        elif accion == "girar_maquina":
+            costo = 100
+            db = get_db()
+            try:
+                with db.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute(
+                        """
+                        SELECT * FROM usuarios
+                        WHERE username = %s
+                        FOR UPDATE
+                        """,
+                        (usuario["username"],)
+                    )
+                    actual = cur.fetchone()
 
-    avatar = AVATARES_DB.get(
-        usuario["avatar_activo"],
-        AVATARES_DB[1]
-    )
+                    if not actual:
+                        mensaje_color = "Usuario no encontrado."
+                        db.rollback()
+                    elif actual["perikoins"] < costo:
+                        mensaje_color = "No tienes suficientes Perikoins para girar."
+                        db.rollback()
+                    else:
+                        exclusivos = {
+                            clave: datos
+                            for clave, datos in COLORES_NOMBRE.items()
+                            if datos.get("tipo") == "MAQUINA"
+                        }
+                        pesos = {
+                            "RARO": 45,
+                            "EPICO": 30,
+                            "LEGENDARIO": 15,
+                            "MITICO": 8,
+                            "SECRETO": 1.9,
+                            "ULTRA": 0.1
+                        }
+                        rareza = random.choices(
+                            list(pesos.keys()),
+                            weights=list(pesos.values()),
+                            k=1
+                        )[0]
+                        posibles = [
+                            clave for clave, datos in exclusivos.items()
+                            if datos.get("rareza") == rareza
+                        ]
+                        clave = random.choice(posibles)
+                        color_maquina = exclusivos[clave]
+                        colores_nuevos = cargar_avatares(actual["colores_desbloqueados"])
+                        nuevo = clave not in colores_nuevos
+                        if nuevo:
+                            colores_nuevos.append(clave)
+
+                        cur.execute(
+                            """
+                            UPDATE usuarios
+                            SET perikoins = perikoins - %s,
+                                colores_desbloqueados = %s
+                            WHERE username = %s
+                            """,
+                            (
+                                costo,
+                                json.dumps(colores_nuevos),
+                                usuario["username"]
+                            )
+                        )
+                        db.commit()
+                        colores_desbloqueados = colores_nuevos
+                        color_ganado = True
+                        if nuevo:
+                            mensaje_color = (
+                                f"🎉 ¡CONSEGUISTE {color_maquina['nombre'].upper()}! "
+                                f"Rareza: {rareza}."
+                            )
+                        else:
+                            mensaje_color = (
+                                f"🎰 Salió {color_maquina['nombre']}. "
+                                "Ya lo tenías desbloqueado."
+                            )
+            except Exception as e:
+                db.rollback()
+                print("ERROR EN MAQUINA DE COLORES:", e)
+                mensaje_color = "Ocurrió un error al girar la máquina."
+
+        usuario = obtener_usuario(session["user"])
+        colores_desbloqueados = cargar_avatares(usuario["colores_desbloqueados"])
+
+    avatar = AVATARES_DB.get(usuario["avatar_activo"], AVATARES_DB[1])
+    color_estilo = obtener_estilo_color(usuario["color_nombre"])
 
     return render_template_string(
         HTML_PERFIL,
         usuario=usuario,
         avatares=AVATARES_DB,
         desbloqueados=desbloqueados,
-        avatar=avatar
+        avatar=avatar,
+        colores=COLORES_NOMBRE,
+        colores_desbloqueados=colores_desbloqueados,
+        color_estilo=color_estilo,
+        mensaje_color=mensaje_color,
+        color_ganado=color_ganado,
+        color_maquina=color_maquina
     )
 
 
@@ -3348,6 +3584,7 @@ type="submit"
 
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
+    global MODO_MANTENIMIENTO
     usuario = usuario_actual()
 
     if not usuario:
@@ -3359,6 +3596,21 @@ def admin():
     mensaje = ""
 
     if request.method == "POST":
+        accion_admin = request.form.get("accion_admin")
+
+        if accion_admin == "mantenimiento":
+            MODO_MANTENIMIENTO = not MODO_MANTENIMIENTO
+            mensaje = (
+                "Modo mantenimiento ACTIVADO."
+                if MODO_MANTENIMIENTO
+                else "Modo mantenimiento DESACTIVADO."
+            )
+            return render_template_string(
+                HTML_ADMIN,
+                mensaje=mensaje,
+                mantenimiento=MODO_MANTENIMIENTO
+            )
+
         destino = request.form.get(
             "destino",
             ""
@@ -3415,7 +3667,8 @@ def admin():
 
     return render_template_string(
         HTML_ADMIN,
-        mensaje=mensaje
+        mensaje=mensaje,
+        mantenimiento=MODO_MANTENIMIENTO
     )
 
 @app.route("/admin/eliminar", methods=["POST"])
