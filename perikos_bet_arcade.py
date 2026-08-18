@@ -80,6 +80,7 @@ AVATARES_DB = {
 MODO_MANTENIMIENTO = False
 MODO_CARNAVAL = False
 COSTO_MAQUINA_COLORES = 10000  # cada giro cuesta 10,000
+COSTO_MONEDA_PRESTIGIO = 1000000000  # 1,000,000,000 perikoins por 1 moneda de prestigio
 
 COLORES_NOMBRE = {
     "BLANCO": {
@@ -406,6 +407,12 @@ def init_db():
                 ALTER TABLE usuarios
                 ADD COLUMN IF NOT EXISTS racha_dias
                 INTEGER NOT NULL DEFAULT 0
+            """)
+
+            cur.execute("""
+                ALTER TABLE usuarios
+                ADD COLUMN IF NOT EXISTS prestigio
+                BIGINT NOT NULL DEFAULT 0
             """)
 
             cur.execute("""
@@ -1687,6 +1694,8 @@ HTML_MENU = CSS + """
 <br><br>
 
 {{ usuario.perikoins }} P
+<br>
+<span style="color:#ffaa00;font-size:7px;">⭐ {{ usuario.prestigio }}</span>
 </div>
 
 {% if racha > 0 %}
@@ -2907,6 +2916,8 @@ HTML_TIENDA = CSS + """
 
 <div class="badge">
 SALDO: {{ usuario.perikoins }} P
+<br>
+<span style="color:#ffaa00;font-size:7px;">⭐ {{ usuario.prestigio }}</span>
 </div>
 
 {% if nuevo %}
@@ -3186,6 +3197,34 @@ COSTO POR GIRO: <span style="color:#ffff00">10,000 P</span>
 <p style="font-size:6px;color:#888;line-height:1.7;">
 RARO 45% · ÉPICO 30% · LEGENDARIO 15% · MÍTICO 8% · SECRETO 1.9% · ULTRA 0.1%
 </p>
+</div>
+
+<!-- ============================= -->
+<!-- MONEDAS DE PRESTIGIO -->
+<!-- ============================= -->
+
+<div class="chest" style="border-color:#ffaa00;background:linear-gradient(145deg,#1a1100,#2a2200);">
+
+<div class="chest-icon">⭐</div>
+
+<strong style="color:#ffaa00;">MONEDA DE PRESTIGIO</strong>
+
+<p style="font-size:7px;color:#aaa;line-height:1.6;">
+Moneda exclusiva para jugadores legendarios.<br>
+Precio: <span style="color:#ffaa00;">1,000,000,000 P</span> por unidad.
+</p>
+
+<p style="font-size:9px;color:#ffaa00;">
+⭐ PRESTIGIO ACTUAL: {{ usuario.prestigio }}
+</p>
+
+<form method="POST">
+<input type="hidden" name="accion" value="comprar_prestigio">
+<button class="btn btn-yellow" type="submit" style="background:#ffaa00;border-bottom-color:#aa7700;color:#000;">
+COMPRAR 1 ⭐ (1,000,000,000 P)
+</button>
+</form>
+
 </div>
 
 <a class="link" href="/menu">
@@ -3543,6 +3582,48 @@ def tienda():
                 mensaje_maquina = "Ocurrió un error al girar la máquina."
 
         # ======================================
+        # COMPRAR MONEDA DE PRESTIGIO
+        # ======================================
+
+        elif accion == "comprar_prestigio":
+            costo = COSTO_MONEDA_PRESTIGIO
+            db = get_db()
+            try:
+                with db.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute(
+                        """
+                        SELECT * FROM usuarios
+                        WHERE username = %s
+                        FOR UPDATE
+                        """,
+                        (usuario["username"],)
+                    )
+                    actual = cur.fetchone()
+
+                    if not actual:
+                        mensaje = "Usuario no encontrado."
+                        db.rollback()
+                    elif actual["perikoins"] < costo:
+                        mensaje = "No tienes suficientes Perikoins para comprar prestigio."
+                        db.rollback()
+                    else:
+                        cur.execute(
+                            """
+                            UPDATE usuarios
+                            SET perikoins = perikoins - %s,
+                                prestigio = prestigio + 1
+                            WHERE username = %s
+                            """,
+                            (costo, usuario["username"])
+                        )
+                        db.commit()
+                        mensaje = "⭐ ¡Has obtenido 1 Moneda de Prestigio!"
+            except Exception as e:
+                db.rollback()
+                print("ERROR EN COMPRAR PRESTIGIO:", e)
+                mensaje = "Ocurrió un error al comprar prestigio."
+
+        # ======================================
         # COMPRA DE COFRES
         # ======================================
 
@@ -3725,6 +3806,10 @@ HTML_PERFIL = CSS + """
 
 <div class="name-color" style="{{ color_estilo }}">
 {{ usuario.username }}
+</div>
+
+<div class="badge" style="background:transparent;">
+<span style="color:#ffaa00;font-size:9px;">⭐ PRESTIGIO: {{ usuario.prestigio }}</span>
 </div>
 
 <p style="font-size:8px">
