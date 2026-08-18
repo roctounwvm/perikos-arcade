@@ -80,7 +80,55 @@ AVATARES_DB = {
 MODO_MANTENIMIENTO = False
 MODO_CARNAVAL = False
 COSTO_MAQUINA_COLORES = 10000  # cada giro cuesta 10,000
-COSTO_MONEDA_PRESTIGIO = 1000000000  # 1,000,000,000 perikoins por 1 moneda de prestigio
+COSTO_MONEDA_PRESTIGIO = 1000000000  # 1,000,000,000 perikoins por 1 moneda de prestigio (legacy, no se usa)
+
+# Precios escalados de prestigio
+# Base: 10 cuatrillones (1e16), se duplica cada compra
+# Tope: 5.15 quintillones (5.15e18)
+PRESTIGIO_PRECIO_BASE = 10_000_000_000_000_000   # 10 cuatrillones
+PRESTIGIO_PRECIO_TOPE = 5_150_000_000_000_000_000  # 5.15 quintillones
+
+
+def calcular_precio_prestigio(prestigio_actual):
+    """
+    Calcula el precio del siguiente prestigio.
+    prestige 1 -> 10 cuatrillones (1e16)
+    prestige 2 -> 20 cuatrillones (2e16)
+    prestige 3 -> 40 cuatrillones (4e16)
+    ...
+    prestige 10 -> 5.12 quintillones (5.12e18)
+    A partir de ahi el precio se fija en 5.15 quintillones.
+    """
+    n = prestigio_actual  # numero de prestigios que YA tiene; el proximo es n+1
+    precio = PRESTIGIO_PRECIO_BASE * (2 ** n)
+    if precio > PRESTIGIO_PRECIO_TOPE:
+        precio = PRESTIGIO_PRECIO_TOPE
+    return precio
+
+
+def formatear_precio_prestigio(precio):
+    """Formatea el precio de prestigio en formato legible."""
+    if precio >= 1_000_000_000_000_000_000:
+        valor = precio / 1_000_000_000_000_000_000
+        return f"{valor:.2f} quintillones"
+    elif precio >= 1_000_000_000_000_000:
+        valor = precio / 1_000_000_000_000_000
+        # Si es entero, mostrar sin decimales
+        if valor == int(valor):
+            return f"{int(valor)} cuatrillones"
+        return f"{valor:.2f} cuatrillones"
+    elif precio >= 1_000_000_000_000:
+        valor = precio / 1_000_000_000_000
+        if valor == int(valor):
+            return f"{int(valor)} trillones"
+        return f"{valor:.2f} trillones"
+    elif precio >= 1_000_000_000:
+        valor = precio / 1_000_000_000
+        if valor == int(valor):
+            return f"{int(valor)} billones"
+        return f"{valor:.2f} billones"
+    else:
+        return f"{precio:,} P"
 
 COLORES_NOMBRE = {
     "BLANCO": {
@@ -3211,7 +3259,13 @@ RARO 45% · ÉPICO 30% · LEGENDARIO 15% · MÍTICO 8% · SECRETO 1.9% · ULTRA 
 
 <p style="font-size:7px;color:#aaa;line-height:1.6;">
 Moneda exclusiva para jugadores legendarios.<br>
-Precio: <span style="color:#ffaa00;">1,000,000,000 P</span> por unidad.
+Precio del siguiente prestigio: <span style="color:#ffaa00;">{{ precio_prestigio_txt }}</span>
+</p>
+
+<p style="font-size:7px;color:#888;line-height:1.5;">
+⭐ Prestigio {{ usuario.prestigio }} → {{ usuario.prestigio + 1 }}<br>
+El precio se duplica con cada compra.<br>
+Precio máximo: 5.15 quintillones
 </p>
 
 <p style="font-size:9px;color:#ffaa00;">
@@ -3221,7 +3275,7 @@ Precio: <span style="color:#ffaa00;">1,000,000,000 P</span> por unidad.
 <form method="POST">
 <input type="hidden" name="accion" value="comprar_prestigio">
 <button class="btn btn-yellow" type="submit" style="background:#ffaa00;border-bottom-color:#aa7700;color:#000;">
-COMPRAR 1 ⭐ (1,000,000,000 P)
+COMPRAR 1 ⭐ ({{ precio_prestigio_txt }})
 </button>
 </form>
 
@@ -3586,7 +3640,6 @@ def tienda():
         # ======================================
 
         elif accion == "comprar_prestigio":
-            costo = COSTO_MONEDA_PRESTIGIO
             db = get_db()
             try:
                 with db.cursor(cursor_factory=RealDictCursor) as cur:
@@ -3603,21 +3656,28 @@ def tienda():
                     if not actual:
                         mensaje = "Usuario no encontrado."
                         db.rollback()
-                    elif actual["perikoins"] < costo:
-                        mensaje = "No tienes suficientes Perikoins para comprar prestigio."
-                        db.rollback()
                     else:
-                        cur.execute(
-                            """
-                            UPDATE usuarios
-                            SET perikoins = perikoins - %s,
-                                prestigio = prestigio + 1
-                            WHERE username = %s
-                            """,
-                            (costo, usuario["username"])
-                        )
-                        db.commit()
-                        mensaje = "⭐ ¡Has obtenido 1 Moneda de Prestigio!"
+                        costo = calcular_precio_prestigio(actual["prestigio"])
+                        if actual["perikoins"] < costo:
+                            precio_txt = formatear_precio_prestigio(costo)
+                            mensaje = f"No tienes suficientes Perikoins. Necesitas {precio_txt}."
+                            db.rollback()
+                        else:
+                            precio_txt = formatear_precio_prestigio(costo)
+                            cur.execute(
+                                """
+                                UPDATE usuarios
+                                SET perikoins = perikoins - %s,
+                                    prestigio = prestigio + 1
+                                WHERE username = %s
+                                """,
+                                (costo, usuario["username"])
+                            )
+                            db.commit()
+                            nuevo_prestigio = actual["prestigio"] + 1
+                            proximo_costo = calcular_precio_prestigio(nuevo_prestigio)
+                            proximo_txt = formatear_precio_prestigio(proximo_costo)
+                            mensaje = f"⭐ ¡Has obtenido 1 Moneda de Prestigio! (Total: {nuevo_prestigio}) Proximo: {proximo_txt}"
             except Exception as e:
                 db.rollback()
                 print("ERROR EN COMPRAR PRESTIGIO:", e)
@@ -3780,6 +3840,10 @@ def tienda():
         usuario["colores_desbloqueados"]
     )
 
+    precio_prestigio_txt = formatear_precio_prestigio(
+        calcular_precio_prestigio(usuario["prestigio"])
+    )
+
     return render_template_string(
         HTML_TIENDA,
         usuario=usuario,
@@ -3789,7 +3853,8 @@ def tienda():
         colores_desbloqueados=colores_desbloqueados,
         mensaje_maquina=mensaje_maquina,
         color_ganado=color_ganado,
-        color_maquina=color_maquina
+        color_maquina=color_maquina,
+        precio_prestigio_txt=precio_prestigio_txt
     )
 
 HTML_PERFIL = CSS + """
@@ -3951,6 +4016,7 @@ HTML_RANKING = CSS + """
 <tr>
 <th>POS</th>
 <th>JUGADOR</th>
+<th>⭐</th>
 <th>PERIKOINS</th>
 </tr>
 
@@ -3966,6 +4032,10 @@ HTML_RANKING = CSS + """
     <span style="{{ j.color_estilo }}">
         {{ j.username }}
     </span>
+</td>
+
+<td style="color:#ffaa00;">
+{{ j.prestigio }}
 </td>
 
 <td>
@@ -4007,7 +4077,8 @@ def ranking():
                 username,
                 perikoins,
                 avatar_activo,
-                color_nombre
+                color_nombre,
+                prestigio
             FROM usuarios
             ORDER BY perikoins DESC
             LIMIT 50
@@ -4027,6 +4098,7 @@ def ranking():
         jugadores.append({
             "username": j["username"],
             "perikoins": j["perikoins"],
+            "prestigio": j["prestigio"],
             "avatar": avatar,
             "color_estilo": obtener_estilo_color(
                 j["color_nombre"]
