@@ -3447,27 +3447,34 @@ def rescate():
 
 
 HTML_ADMIN = CSS + """
-
 <div class="arcade-box">
 
-<h1 style="color:#ff0055">
-PANEL ADMIN PERIKO
-</h1>
+<h1 style="color:#ff0055">PANEL ADMIN PERIKO</h1>
 
-<div class="badge">
-👑 ADMINISTRADOR SUPREMO
-</div>
+<div class="badge">👑 ADMINISTRADOR SUPREMO</div>
 
 {% if mensaje %}
-<div class="msg">
-{{ mensaje }}
-</div>
+<div class="msg">{{ mensaje }}</div>
 {% endif %}
 
 
-<!-- ============================= -->
-<!-- REGALAR PERIKOINS -->
-<!-- ============================= -->
+<div class="chest" style="border-color:#ffff00;">
+    <h2 style="color:#ffff00;font-size:10px;">⚠️ MODO MANTENIMIENTO</h2>
+    <p style="font-size:7px;color:#aaa;line-height:1.7;">
+        Estado actual: 
+        <strong style="color: {% if mantenimiento %}#ff0000{% else %}#00ff00{% endif %};">
+            {% if mantenimiento %}ACTIVADO{% else %}DESACTIVADO{% endif %}
+        </strong>
+        <br>Si está activo, solo la cuenta "periko" podrá entrar.
+    </p>
+    <form method="POST" action="/admin">
+        <input type="hidden" name="accion_admin" value="mantenimiento">
+        <button class="btn {% if mantenimiento %}btn-green{% else %}btn-red{% endif %}" type="submit">
+            {% if mantenimiento %}DESACTIVAR MANTENIMIENTO{% else %}ACTIVAR MANTENIMIENTO{% endif %}
+        </button>
+    </form>
+</div>
+
 
 <div class="chest">
 
@@ -3480,6 +3487,8 @@ Envía Perikoins directamente a cualquier jugador.
 </p>
 
 <form method="POST" action="/admin">
+
+<input type="hidden" name="accion_admin" value="regalar">
 
 <label>GAMER TAG DEL DESTINATARIO</label>
 
@@ -3509,10 +3518,6 @@ type="submit"
 
 </div>
 
-
-<!-- ============================= -->
-<!-- ELIMINAR CUENTA -->
-<!-- ============================= -->
 
 <div class="chest" style="border-color:#ff0000;">
 
@@ -3552,10 +3557,6 @@ type="submit"
 
 </div>
 
-
-<!-- ============================= -->
-<!-- INFORMACION DEL PANEL -->
-<!-- ============================= -->
 
 <div class="chest" style="border-color:#ffff00;">
 
