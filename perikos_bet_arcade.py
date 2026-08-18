@@ -78,7 +78,7 @@ AVATARES_DB = {
 }
 
 MODO_MANTENIMIENTO = False
-COSTO_MAQUINA_COLORES = 10000
+COSTO_MAQUINA_COLORES = 10000  # cada giro cuesta 10,000
 
 COLORES_NOMBRE = {
     "BLANCO": {
@@ -2998,13 +2998,36 @@ COMPRAR {{ color.precio }} P
 <!-- MAQUINA DE COLORES -->
 <!-- ============================= -->
 
-<div class="chest" style="border-color:#ff00ff;">
-<h2 style="color:#ff00ff;font-size:10px;">🎰 MÁQUINA DE COLORES</h2>
+<!-- ============================= -->
+<!-- MAQUINA DE COLORES -->
+<!-- ============================= -->
+
+<div class="machine">
+<div class="machine-icon">🎰</div>
+<h2 style="color:#ff00ff;font-size:11px;">MÁQUINA DE COLORES</h2>
 <p style="font-size:7px;color:#aaa;line-height:1.8;">
-Los colores exclusivos se consiguen girando la máquina desde tu perfil.<br>
-🔥 Fuego · ❄️ Hielo · 🌈 Neón · 🌌 Galaxia · 👑 Divino y muchos más.
+GIRA LA MÁQUINA Y CONSIGUE UN COLOR EXCLUSIVO PARA TU PERFIL.<br>
+COSTO POR GIRO: <span style="color:#ffff00">10,000 P</span>
 </p>
-<a class="btn btn-purple" href="/perfil">🎰 IR A LA MÁQUINA</a>
+
+{% if mensaje_maquina %}
+<div class="{% if color_ganado %}win{% else %}msg{% endif %}">
+{{ mensaje_maquina }}
+</div>
+{% endif %}
+
+<div class="color-preview" style="{% if color_maquina %}color:{{ color_maquina.css }};{% endif %}">
+{% if color_maquina %}{{ color_maquina.nombre }}{% else %}???{% endif %}
+</div>
+
+<form method="POST">
+<input type="hidden" name="accion" value="girar_maquina">
+<button class="btn btn-purple" type="submit">🎰 GIRAR POR 10,000 P</button>
+</form>
+
+<p style="font-size:6px;color:#888;line-height:1.7;">
+RARO 45% · ÉPICO 30% · LEGENDARIO 15% · MÍTICO 8% · SECRETO 1.9% · ULTRA 0.1%
+</p>
 </div>
 
 <a class="link" href="/menu">
@@ -3025,6 +3048,9 @@ def tienda():
         return redirect(url_for("login"))
 
     mensaje = ""
+    mensaje_maquina = ""
+    color_ganado = False
+    color_maquina = None
     nuevo = None
 
     # ==========================================
@@ -3274,6 +3300,91 @@ def tienda():
 
 
         # ======================================
+        # GIRAR MAQUINA DE COLORES
+        # ======================================
+
+        elif accion == "girar_maquina":
+            costo = COSTO_MAQUINA_COLORES
+            db = get_db()
+            try:
+                with db.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute(
+                        """
+                        SELECT * FROM usuarios
+                        WHERE username = %s
+                        FOR UPDATE
+                        """,
+                        (usuario["username"],)
+                    )
+                    actual = cur.fetchone()
+
+                    if not actual:
+                        mensaje_maquina = "Usuario no encontrado."
+                        db.rollback()
+                    elif actual["perikoins"] < costo:
+                        mensaje_maquina = "No tienes suficientes Perikoins para girar."
+                        db.rollback()
+                    else:
+                        exclusivos = {
+                            clave: datos
+                            for clave, datos in COLORES_NOMBRE.items()
+                            if datos.get("tipo") == "MAQUINA"
+                        }
+                        pesos = {
+                            "RARO": 45,
+                            "EPICO": 30,
+                            "LEGENDARIO": 15,
+                            "MITICO": 8,
+                            "SECRETO": 1.9,
+                            "ULTRA": 0.1
+                        }
+                        rareza = random.choices(
+                            list(pesos.keys()),
+                            weights=list(pesos.values()),
+                            k=1
+                        )[0]
+                        posibles = [
+                            clave for clave, datos in exclusivos.items()
+                            if datos.get("rareza") == rareza
+                        ]
+                        clave_ganada = random.choice(posibles)
+                        color_maquina = exclusivos[clave_ganada]
+                        colores_nuevos = cargar_avatares(actual["colores_desbloqueados"])
+                        es_nuevo = clave_ganada not in colores_nuevos
+                        if es_nuevo:
+                            colores_nuevos.append(clave_ganada)
+
+                        cur.execute(
+                            """
+                            UPDATE usuarios
+                            SET perikoins = perikoins - %s,
+                                colores_desbloqueados = %s
+                            WHERE username = %s
+                            """,
+                            (
+                                costo,
+                                json.dumps(colores_nuevos),
+                                usuario["username"]
+                            )
+                        )
+                        db.commit()
+                        color_ganado = True
+                        if es_nuevo:
+                            mensaje_maquina = (
+                                f"🎉 ¡CONSEGUISTE {color_maquina['nombre'].upper()}! "
+                                f"Rareza: {rareza}."
+                            )
+                        else:
+                            mensaje_maquina = (
+                                f"🎰 Salió {color_maquina['nombre']}. "
+                                "Ya lo tenías desbloqueado."
+                            )
+            except Exception as e:
+                db.rollback()
+                print("ERROR EN MAQUINA DE COLORES:", e)
+                mensaje_maquina = "Ocurrió un error al girar la máquina."
+
+        # ======================================
         # COMPRA DE COFRES
         # ======================================
 
@@ -3436,7 +3547,10 @@ def tienda():
         nuevo=nuevo,
         mensaje=mensaje,
         colores_tienda=colores_tienda,
-        colores_desbloqueados=colores_desbloqueados
+        colores_desbloqueados=colores_desbloqueados,
+        mensaje_maquina=mensaje_maquina,
+        color_ganado=color_ganado,
+        color_maquina=color_maquina
     )
 
 HTML_PERFIL = CSS + """
@@ -3473,33 +3587,7 @@ AVATARES: {{ desbloqueados|length }}/50
 {% endfor %}
 </div>
 
-<div class="machine">
-<div class="machine-icon">🎰</div>
-<h2 style="color:#ff00ff;font-size:11px;">MÁQUINA DE COLORES</h2>
-<p style="font-size:7px;color:#aaa;line-height:1.8;">
-GIRA LA MÁQUINA Y CONSIGUE UN COLOR EXCLUSIVO PARA TU PERFIL.<br>
-COSTO POR GIRO: <span style="color:#ffff00">100 P</span>
-</p>
-
-{% if mensaje_color %}
-<div class="{% if color_ganado %}win{% else %}msg{% endif %}">
-{{ mensaje_color }}
-</div>
-{% endif %}
-
-<div class="color-preview" style="{% if color_maquina %}color:{{ color_maquina.css }};{% endif %}">
-{% if color_maquina %}{{ color_maquina.nombre }}{% else %}???{% endif %}
-</div>
-
-<form method="POST">
-<input type="hidden" name="accion" value="girar_maquina">
-<button class="btn btn-purple" type="submit">🎰 GIRAR POR 100 P</button>
-</form>
-
-<p style="font-size:6px;color:#888;line-height:1.7;">
-RARO 45% · ÉPICO 30% · LEGENDARIO 15% · MÍTICO 8% · SECRETO 1.9% · ULTRA 0.1%
-</p>
-</div>
+<!-- MAQUINA DE COLORES MOVIDA A TIENDA -->
 
 <div class="chest" style="border-color:#00ffcc;">
 <h2 style="color:#00ffcc;font-size:10px;">🎨 MIS COLORES</h2>
@@ -3545,7 +3633,6 @@ def perfil():
     colores_desbloqueados = cargar_avatares(usuario["colores_desbloqueados"])
     mensaje_color = ""
     color_ganado = False
-    color_maquina = None
 
     if request.method == "POST":
         accion = request.form.get("accion")
@@ -3588,88 +3675,6 @@ def perfil():
             else:
                 mensaje_color = "No tienes desbloqueado este color."
 
-        elif accion == "girar_maquina":
-            costo = 100
-            db = get_db()
-            try:
-                with db.cursor(cursor_factory=RealDictCursor) as cur:
-                    cur.execute(
-                        """
-                        SELECT * FROM usuarios
-                        WHERE username = %s
-                        FOR UPDATE
-                        """,
-                        (usuario["username"],)
-                    )
-                    actual = cur.fetchone()
-
-                    if not actual:
-                        mensaje_color = "Usuario no encontrado."
-                        db.rollback()
-                    elif actual["perikoins"] < costo:
-                        mensaje_color = "No tienes suficientes Perikoins para girar."
-                        db.rollback()
-                    else:
-                        exclusivos = {
-                            clave: datos
-                            for clave, datos in COLORES_NOMBRE.items()
-                            if datos.get("tipo") == "MAQUINA"
-                        }
-                        pesos = {
-                            "RARO": 45,
-                            "EPICO": 30,
-                            "LEGENDARIO": 15,
-                            "MITICO": 8,
-                            "SECRETO": 1.9,
-                            "ULTRA": 0.1
-                        }
-                        rareza = random.choices(
-                            list(pesos.keys()),
-                            weights=list(pesos.values()),
-                            k=1
-                        )[0]
-                        posibles = [
-                            clave for clave, datos in exclusivos.items()
-                            if datos.get("rareza") == rareza
-                        ]
-                        clave = random.choice(posibles)
-                        color_maquina = exclusivos[clave]
-                        colores_nuevos = cargar_avatares(actual["colores_desbloqueados"])
-                        nuevo = clave not in colores_nuevos
-                        if nuevo:
-                            colores_nuevos.append(clave)
-
-                        cur.execute(
-                            """
-                            UPDATE usuarios
-                            SET perikoins = perikoins - %s,
-                                colores_desbloqueados = %s
-                            WHERE username = %s
-                            """,
-                            (
-                                costo,
-                                json.dumps(colores_nuevos),
-                                usuario["username"]
-                            )
-                        )
-                        db.commit()
-                        colores_desbloqueados = colores_nuevos
-                        color_ganado = True
-                        if nuevo:
-                            mensaje_color = (
-                                f"🎉 ¡CONSEGUISTE {color_maquina['nombre'].upper()}! "
-                                f"Rareza: {rareza}."
-                            )
-                        else:
-                            mensaje_color = (
-                                f"🎰 Salió {color_maquina['nombre']}. "
-                                "Ya lo tenías desbloqueado."
-                            )
-            except Exception as e:
-                db.rollback()
-                print("ERROR EN MAQUINA DE COLORES:", e)
-                mensaje_color = "Ocurrió un error al girar la máquina."
-
         usuario = obtener_usuario(session["user"])
         colores_desbloqueados = cargar_avatares(usuario["colores_desbloqueados"])
 
@@ -3686,8 +3691,7 @@ def perfil():
         colores_desbloqueados=colores_desbloqueados,
         color_estilo=color_estilo,
         mensaje_color=mensaje_color,
-        color_ganado=color_ganado,
-        color_maquina=color_maquina
+        color_ganado=color_ganado
     )
 
 
