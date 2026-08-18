@@ -653,6 +653,81 @@ button {
     box-shadow:0 0 15px currentColor;
 }
 
+.game-grid {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin:12px 0;
+}
+
+.game-card {
+    background:linear-gradient(145deg,#1a002e,#2a0044);
+    border:3px solid #ff007f;
+    border-bottom:5px solid #990033;
+    border-radius:12px;
+    padding:16px 8px;
+    cursor:pointer;
+    text-decoration:none;
+    color:#fff;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    transition:transform .15s ease,filter .15s ease,box-shadow .15s ease;
+    min-height:100px;
+}
+
+.game-card:hover {
+    filter:brightness(1.3);
+    transform:translateY(-3px) scale(1.02);
+    box-shadow:0 0 18px #ff007f;
+}
+
+.game-card:active {
+    transform:translateY(2px) scale(.98);
+}
+
+.game-card .game-icon {
+    font-size:30px;
+    line-height:1;
+}
+
+.game-card .game-name {
+    font-size:7px;
+    text-align:center;
+    line-height:1.4;
+    color:#fff;
+}
+
+.game-card.g-dados { border-color:#ff0055; box-shadow:0 0 10px rgba(255,0,85,.3); }
+.game-card.g-dados:hover { box-shadow:0 0 20px #ff0055; }
+
+.game-card.g-ruleta { border-color:#ffff00; box-shadow:0 0 10px rgba(255,255,0,.3); }
+.game-card.g-ruleta:hover { box-shadow:0 0 20px #ffff00; }
+
+.game-card.g-cartas { border-color:#00ffcc; box-shadow:0 0 10px rgba(0,255,204,.3); }
+.game-card.g-cartas:hover { box-shadow:0 0 20px #00ffcc; }
+
+.game-card.g-moneda { border-color:#ff7700; box-shadow:0 0 10px rgba(255,119,0,.3); }
+.game-card.g-moneda:hover { box-shadow:0 0 20px #ff7700; }
+
+.game-card.g-slots { border-color:#ff00ff; box-shadow:0 0 10px rgba(255,0,255,.3); }
+.game-card.g-slots:hover { box-shadow:0 0 20px #ff00ff; }
+
+.game-card.g-derby { border-color:#00ff66; box-shadow:0 0 10px rgba(0,255,102,.3); }
+.game-card.g-derby:hover { box-shadow:0 0 20px #00ff66; }
+
+.game-card.g-blackjack { border-color:#ff4444; box-shadow:0 0 10px rgba(255,68,68,.3); }
+.game-card.g-blackjack:hover { box-shadow:0 0 20px #ff4444; }
+
+@media (max-width:380px) {
+    .game-card .game-icon { font-size:24px; }
+    .game-card .game-name { font-size:6px; }
+    .game-card { min-height:85px; padding:12px 6px; }
+    .game-grid { gap:8px; }
+}
+
 .btn:active {
     transform:translateY(2px) scale(.98);
 }
@@ -1336,6 +1411,9 @@ label { color: #ff88ff; }
 .msg { border-color: #ff00ff; color: #ff88ff; }
 .chip { background: #ff00ff; border-bottom-color: #9900aa; }
 .link { color: #ff88ff; }
+.game-card { border-color: #ff00ff; background: rgba(255,0,255,.12); }
+.game-card:hover { box-shadow: 0 0 16px #ff00ff; background: rgba(255,0,255,.22); }
+.game-card .game-icon { filter: hue-rotate(90deg); }
 </style>
 <div class="carnaval-banner">
     🎭 ¡MODO CARNAVAL ACTIVADO! 🎭 — Todas las ganancias x2 — 🎉🎊
@@ -1586,7 +1664,7 @@ def contexto_global():
 
 HTML_MENU = CSS + """
 
-<div class="arcade-box">
+<div class="arcade-box" style="max-width:640px;">
 
 <h1>PERIKOS BET</h1>
 
@@ -1632,33 +1710,46 @@ RESCATE DIARIO<br>
 SELECCIONA UN JUEGO
 </p>
 
-<a class="btn" href="/juego/dados">
-1. DADOS
+<div class="game-grid">
+
+<a class="game-card g-dados" href="/juego/dados">
+<span class="game-icon">🎲</span>
+<span class="game-name">DADOS</span>
 </a>
 
-<a class="btn" href="/juego/ruleta">
-2. RULETA ROYALE
+<a class="game-card g-ruleta" href="/juego/ruleta">
+<span class="game-icon">🎡</span>
+<span class="game-name">RULETA ROYALE</span>
 </a>
 
-<a class="btn" href="/juego/cartas">
-3. MAYOR O MENOR
+<a class="game-card g-cartas" href="/juego/cartas">
+<span class="game-icon">♠♥</span>
+<span class="game-name">MAYOR O MENOR</span>
 </a>
 
-<a class="btn" href="/juego/moneda">
-4. CARA O CRUZ
+<a class="game-card g-moneda" href="/juego/moneda">
+<span class="game-icon">🪙</span>
+<span class="game-name">CARA O CRUZ</span>
 </a>
 
-<a class="btn" href="/juego/slots">
-5. TRAGAPERRAS 8-BITS
+<a class="game-card g-slots" href="/juego/slots">
+<span class="game-icon">🎰</span>
+<span class="game-name">TRAGAPERRAS 8-BITS</span>
 </a>
 
-<a class="btn" href="/juego/derby">
-6. CARRERA DE PERIKOS
+<a class="game-card g-derby" href="/juego/derby">
+<span class="game-icon">🏁</span>
+<span class="game-name">CARRERA DE PERIKOS</span>
 </a>
 
-<a class="btn" href="/juego/blackjack">
-7. BLACKJACK
+<a class="game-card g-blackjack" href="/juego/blackjack">
+<span class="game-icon">🃏</span>
+<span class="game-name">BLACKJACK</span>
 </a>
+
+</div>
+
+<p style="font-size:7px;color:#555;margin:10px 0 6px;">──────────────────────</p>
 
 <a class="btn btn-yellow" href="/tienda">
 📦 TIENDA DE COFRES
