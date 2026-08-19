@@ -578,6 +578,21 @@ def init_db():
                 ON mensajes_globales(activo, creado_en DESC)
             """)
 
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS novedades (
+                    id BIGSERIAL PRIMARY KEY,
+                    titulo VARCHAR(200) NOT NULL,
+                    contenido TEXT NOT NULL,
+                    autor VARCHAR(30) NOT NULL,
+                    creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                )
+            """)
+
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_novedades_creado
+                ON novedades(creado_en DESC)
+            """)
+
         conn.commit()
 
     finally:
@@ -2266,6 +2281,10 @@ SELECCIONA UN JUEGO
 PANEL ADMIN PERIKO
 </a>
 {% endif %}
+
+<a class="btn" style="background:linear-gradient(135deg,#ff6600,#ffaa00);color:#000;border-bottom:5px solid #cc5500;" href="/novedades">
+📰 NOVEDADES
+</a>
 
 <a class="link" href="/logout">
 [CERRAR SESION]
@@ -5874,6 +5893,211 @@ def admin_eliminar():
         registro_activo=REGISTRO_ACTIVO,
         registro_movimientos=[]
     )
+
+# ==================== NOVEDADES ====================
+
+HTML_NOVEDADES = CSS + """
+
+<div class="arcade-box" style="max-width:640px;">
+
+<h1>📰 NOVEDADES</h1>
+
+<p style="font-size:7px;color:#aaa;margin-bottom:12px;">
+Las últimas noticias y actualizaciones del arcade.
+</p>
+
+{% if es_admin %}
+<a class="btn" style="background:linear-gradient(135deg,#ff6600,#ffaa00);color:#000;border-bottom:5px solid #cc5500;" href="/novedades/crear">
+✏️ CREAR NOVEDAD
+</a>
+{% endif %}
+
+{% if posts %}
+{% for post in posts %}
+<div class="chest" style="border-color:#ff7700;margin:12px 0;">
+    <h3 style="color:#ffaa00;font-size:9px;margin-bottom:6px;">{{ post.titulo }}</h3>
+    <p style="font-size:7px;color:#00ffcc;line-height:1.8;white-space:pre-wrap;">{{ post.contenido }}</p>
+    <p style="font-size:6px;color:#888;margin-top:8px;">
+        👤 {{ post.autor }} · {{ post.fecha }}
+    </p>
+    {% if es_admin %}
+    <form method="POST" action="/novedades/borrar/{{ post.id }}" style="margin-top:8px;">
+        <button class="btn btn-red" type="submit" style="font-size:7px;padding:6px;">
+        🗑️ BORRAR
+        </button>
+    </form>
+    {% endif %}
+</div>
+{% endfor %}
+{% else %}
+<div class="msg">
+No hay novedades todavía.
+</div>
+{% endif %}
+
+<a class="link" href="/menu">
+< VOLVER AL MENU
+</a>
+
+</div>
+
+</body>
+</html>
+"""
+
+
+HTML_NOVEDADES_CREAR = CSS + """
+
+<div class="arcade-box" style="max-width:640px;">
+
+<h1>✏️ CREAR NOVEDAD</h1>
+
+{% if mensaje %}
+<div class="msg">{{ mensaje }}</div>
+{% endif %}
+
+<form method="POST" action="/novedades/crear">
+
+<label>Título</label>
+<input type="text" name="titulo" maxlength="200" required
+    placeholder="Ej: Nuevo juego disponible!"
+    value="{{ titulo_prev|default('',true) }}">
+
+<label>Contenido</label>
+<textarea name="contenido" rows="6" required
+    style="width:100%;padding:12px;margin:8px 0 15px;background:#000;border:2px solid #00ffcc;color:#fff;border-radius:5px;font-family:'Press Start 2P',cursive;font-size:8px;resize:vertical;"
+    placeholder="Escribe la novedad aquí...">{{ contenido_prev|default('',true) }}</textarea>
+
+<button class="btn" style="background:linear-gradient(135deg,#ff6600,#ffaa00);color:#000;border-bottom:5px solid #cc5500;" type="submit">
+📢 PUBLICAR NOVEDAD
+</button>
+
+</form>
+
+<a class="link" href="/novedades">
+< VOLVER A NOVEDADES
+</a>
+
+</div>
+
+</body>
+</html>
+"""
+
+
+@app.route("/novedades")
+def novedades():
+    usuario = usuario_actual()
+
+    if not usuario:
+        return redirect(url_for("login"))
+
+    es_admin = usuario["username"].lower() == "periko"
+
+    db = get_db()
+    posts = []
+
+    try:
+        with db.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("""
+                SELECT id, titulo, contenido, autor,
+                       TO_CHAR(creado_en, 'DD/MM/YYYY HH24:MI') AS fecha
+                FROM novedades
+                ORDER BY creado_en DESC
+                LIMIT 50
+            """)
+            posts = cur.fetchall()
+    except Exception as e:
+        print("ERROR AL CARGAR NOVEDADES:", e)
+
+    return render_template_string(
+        HTML_NOVEDADES,
+        posts=posts,
+        es_admin=es_admin
+    )
+
+
+@app.route("/novedades/crear", methods=["GET", "POST"])
+def novedades_crear():
+    usuario = usuario_actual()
+
+    if not usuario:
+        return redirect(url_for("login"))
+
+    if usuario["username"].lower() != "periko":
+        return redirect(url_for("novedades"))
+
+    mensaje = ""
+    titulo_prev = ""
+    contenido_prev = ""
+
+    if request.method == "POST":
+        titulo = request.form.get("titulo", "").strip()
+        contenido = request.form.get("contenido", "").strip()
+
+        titulo_prev = titulo
+        contenido_prev = contenido
+
+        if not titulo:
+            mensaje = "El título no puede estar vacío."
+        elif not contenido:
+            mensaje = "El contenido no puede estar vacío."
+        elif len(titulo) > 200:
+            mensaje = "El título es demasiado largo (máx 200 caracteres)."
+        elif len(contenido) > 5000:
+            mensaje = "El contenido es demasiado largo (máx 5000 caracteres)."
+        else:
+            db = get_db()
+            try:
+                with db.cursor() as cur:
+                    cur.execute("""
+                        INSERT INTO novedades (titulo, contenido, autor)
+                        VALUES (%s, %s, %s)
+                    """, (titulo, contenido, usuario["username"]))
+                db.commit()
+                return redirect(url_for("novedades"))
+            except Exception as e:
+                db.rollback()
+                print("ERROR AL CREAR NOVEDAD:", e)
+                mensaje = "No se pudo publicar la novedad."
+
+    return render_template_string(
+        HTML_NOVEDADES_CREAR,
+        mensaje=mensaje,
+        titulo_prev=titulo_prev,
+        contenido_prev=contenido_prev
+    )
+
+
+@app.route("/novedades/borrar/<int:post_id>", methods=["POST"])
+def novedades_borrar(post_id):
+    usuario = usuario_actual()
+
+    if not usuario:
+        return redirect(url_for("login"))
+
+    if usuario["username"].lower() != "periko":
+        return redirect(url_for("novedades"))
+
+    db = get_db()
+
+    try:
+        with db.cursor() as cur:
+            cur.execute("""
+                DELETE FROM novedades
+                WHERE id = %s
+            """, (post_id,))
+
+            if cur.rowcount == 0:
+                db.rollback()
+            else:
+                db.commit()
+    except Exception as e:
+        db.rollback()
+        print("ERROR AL BORRAR NOVEDAD:", e)
+
+    return redirect(url_for("novedades"))
+
 
 @app.route("/logout")
 def logout():
