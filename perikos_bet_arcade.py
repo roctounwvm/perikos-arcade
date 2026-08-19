@@ -915,8 +915,187 @@ button {
 .game-card.g-blackjack { border-color:#ff4444; box-shadow:0 0 10px rgba(255,68,68,.3); }
 .game-card.g-blackjack:hover { box-shadow:0 0 20px #ff4444; }
 
-.game-card.g-soon { border-color:#444; box-shadow:none; background:linear-gradient(145deg,#111,#1a1a1a); }
-.game-card.g-soon:hover { transform:none; filter:none; box-shadow:none; }
+.game-card.g-crash { border-color:#ff6600; box-shadow:0 0 10px rgba(255,102,0,.3); }
+.game-card.g-crash:hover { box-shadow:0 0 20px #ff6600; }
+
+/* === CRASH GAME STYLES === */
+.crash-container {
+    margin:15px 0;
+    text-align:center;
+}
+.crash-graph {
+    position:relative;
+    width:100%;
+    height:180px;
+    background:#080808;
+    border:2px solid #ff6600;
+    border-radius:10px;
+    overflow:hidden;
+    margin:10px 0;
+}
+.crash-line {
+    position:absolute;
+    bottom:0;
+    left:0;
+    width:0;
+    height:0;
+    border-radius:2px;
+    transition:none;
+}
+.crash-multiplier {
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    font-size:28px;
+    font-weight:bold;
+    color:#ff6600;
+    text-shadow:0 0 20px #ff6600, 0 0 40px rgba(255,102,0,.5);
+    z-index:3;
+    animation:crashPulse .15s infinite alternate;
+}
+.crash-multiplier.crashed {
+    color:#ff0033;
+    text-shadow:0 0 20px #ff0033, 0 0 40px rgba(255,0,51,.5);
+    animation:none;
+}
+.crash-multiplier.cashed {
+    color:#00ff66;
+    text-shadow:0 0 20px #00ff66, 0 0 40px rgba(0,255,102,.5);
+    animation:none;
+}
+.crash-rocket {
+    position:absolute;
+    font-size:26px;
+    z-index:4;
+    transition:none;
+}
+.crash-rocket.exploded {
+    animation:explode .6s ease-out forwards;
+}
+.crash-history {
+    display:flex;
+    flex-wrap:wrap;
+    gap:4px;
+    margin:10px 0;
+    justify-content:center;
+}
+.crash-history-item {
+    font-size:7px;
+    padding:2px 6px;
+    border-radius:3px;
+    border:1px solid #333;
+}
+.crash-history-item.green { color:#00ff66; border-color:#00ff6644; background:#00ff6611; }
+.crash-history-item.red { color:#ff0033; border-color:#ff003344; background:#ff003311; }
+.crash-bet-area {
+    margin:10px 0;
+}
+.crash-cashout-btn {
+    display:inline-block;
+    background:linear-gradient(145deg,#00cc44,#00ff66);
+    color:#000;
+    border:2px solid #00ff66;
+    padding:12px 30px;
+    font-size:9px;
+    font-family:'Press Start 2P',monospace;
+    cursor:pointer;
+    text-transform:uppercase;
+    animation:cashoutPulse .4s infinite alternate;
+    margin-top:8px;
+}
+.crash-cashout-btn:hover {
+    box-shadow:0 0 20px #00ff66;
+}
+.crash-cashout-btn:disabled {
+    opacity:.4;
+    cursor:not-allowed;
+    animation:none;
+}
+@keyframes crashPulse {
+    0% { transform:translate(-50%,-50%) scale(1); }
+    100% { transform:translate(-50%,-50%) scale(1.06); }
+}
+@keyframes cashoutPulse {
+    0% { box-shadow:0 0 5px #00ff66; transform:scale(1); }
+    100% { box-shadow:0 0 20px #00ff66; transform:scale(1.04); }
+}
+@keyframes explode {
+    0% { transform:scale(1); opacity:1; }
+    40% { transform:scale(1.8); opacity:.8; }
+    100% { transform:scale(0); opacity:0; }
+}
+
+/* === DERBY MEJORADO STYLES === */
+.derby-bet-type {
+    margin:8px 0;
+    text-align:center;
+}
+.derby-bet-type select {
+    width:90%;
+    font-size:7px;
+}
+.derby-bet-extra {
+    margin:8px 0;
+    text-align:center;
+}
+.derby-bet-extra select {
+    width:90%;
+    font-size:7px;
+}
+.derby-odds-table {
+    width:100%;
+    font-size:7px;
+    border-collapse:collapse;
+    margin:8px 0;
+    text-align:center;
+}
+.derby-odds-table th {
+    color:#00ffcc;
+    padding:4px;
+    border-bottom:1px solid #00ffcc33;
+}
+.derby-odds-table td {
+    padding:3px 4px;
+    color:#ccc;
+}
+.derby-exacta-info {
+    font-size:7px;
+    color:#ffaa00;
+    margin:5px 0;
+    text-align:center;
+    border:1px dashed #ffaa0044;
+    padding:6px;
+    border-radius:5px;
+}
+.derby-podium {
+    margin:15px 0;
+    text-align:center;
+}
+.derby-podium-position {
+    display:inline-block;
+    margin:0 8px;
+    text-align:center;
+    vertical-align:bottom;
+}
+.derby-podium-position.p1 .podium-bar { height:60px; background:linear-gradient(#ffcc00,#aa8800); border:2px solid #ffcc00; }
+.derby-podium-position.p2 .podium-bar { height:45px; background:linear-gradient(#cccccc,#888888); border:2px solid #ccc; }
+.derby-podium-position.p3 .podium-bar { height:32px; background:linear-gradient(#cc6633,#884422); border:2px solid #cc6633; }
+.podium-bar {
+    width:60px;
+    border-radius:4px 4px 0 0;
+    margin:0 auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:6px;
+    color:#000;
+    font-weight:bold;
+}
+.podium-icon {
+    font-size:20px;
+    margin-bottom:4px;
+}
 
 @media (max-width:380px) {
     .game-card .game-icon { font-size:24px; }
@@ -1412,6 +1591,10 @@ td {
     animation:raceIcon 1s ease-in-out infinite;
 }
 
+[data-game="CRASH ROCKET"] .game-icon {
+    animation:crashIcon 1s ease-in-out infinite;
+}
+
 .game-result {
     animation:resultPop .5s cubic-bezier(.2,.8,.2,1);
     transform-origin:center;
@@ -1538,6 +1721,11 @@ select:focus {
 @keyframes raceIcon {
     0%,100% { transform:translateX(0) scale(1); }
     50% { transform:translateX(9px) scale(1.1); }
+}
+
+@keyframes crashIcon {
+    0%,100% { transform:translateY(0) scale(1); }
+    50% { transform:translateY(-10px) scale(1.12); }
 }
 
 @keyframes resultPop {
@@ -2052,10 +2240,10 @@ SELECCIONA UN JUEGO
 <span class="game-name">BLACKJACK</span>
 </a>
 
-<div class="game-card g-soon" style="cursor:not-allowed;opacity:.5;pointer-events:none;">
-<span class="game-icon">❓</span>
-<span class="game-name">COMING SOON</span>
-</div>
+<a class="game-card g-crash" href="/juego/crash">
+<span class="game-icon">📈</span>
+<span class="game-name">CRASH ROCKET</span>
+</a>
 
 </div>
 
@@ -2963,7 +3151,35 @@ SALDO: {{ usuario.perikoins }} P
 
 <form method="POST">
 
-<label>ELIGE CORREDOR</label>
+<label>TIPO DE APUESTA</label>
+
+<div class="derby-bet-type">
+<select name="tipo_apuesta" id="tipoApuesta" onchange="derbyToggleBetType()">
+<option value="GANADOR">🏆 GANADOR — Elegir 1er lugar</option>
+<option value="EXACTA">🎯 EXACTA — 1ro y 2do en orden (x{{ mult_exacta }})</option>
+<option value="TRIFECTA">💎 TRIFECTA — 1ro, 2do y 3ro en orden (x{{ mult_trifecta }})</option>
+</select>
+</div>
+
+<div class="derby-bet-extra" id="derbyExtra2">
+<label>2do LUGAR</label>
+<select name="corredor2">
+{% for valor,texto in opciones %}
+<option value="{{ valor }}">{{ texto }}</option>
+{% endfor %}
+</select>
+</div>
+
+<div class="derby-bet-extra" id="derbyExtra3">
+<label>3er LUGAR</label>
+<select name="corredor3">
+{% for valor,texto in opciones %}
+<option value="{{ valor }}">{{ texto }}</option>
+{% endfor %}
+</select>
+</div>
+
+<label>ELIGE CORREDOR (1er LUGAR)</label>
 
 <select name="corredor" required>
 
@@ -2977,11 +3193,17 @@ SALDO: {{ usuario.perikoins }} P
 
 </select>
 
+<div class="derby-exacta-info">
+💡 EXACTA: Acertar 1ro y 2do en orden exacto → x{{ mult_exacta }}<br>
+💎 TRIFECTA: Acertar 1ro, 2do y 3ro en orden exacto → x{{ mult_trifecta }}<br>
+⚠️ No puedes repetir corredores en la misma apuesta.
+</div>
+
 <label>SELECCIONA TU APUESTA</label>
 
 <div class="grid">
 
-{% for cantidad in [10,50,100,250,500,1000] %}
+{% for cantidad in [10,50,100,250,500,1000,5000] %}
 
 <button
 class="chip"
@@ -3005,6 +3227,13 @@ ALL IN
 
 </form>
 
+<table class="derby-odds-table">
+<tr><th>CORREDOR</th><th>CUOTA</th><th>PROB.~</th></tr>
+{% for clave,texto in opciones %}
+<tr><td>{{ texto }}</td><td style="color:#ffaa00;">x{{ cuotas[clave] }}</td><td>{{ probabilidades[clave] }}%</td></tr>
+{% endfor %}
+</table>
+
 {% if carrera %}
 
 <div class="race">
@@ -3016,12 +3245,13 @@ ALL IN
 {% for corredor,data in carrera.items() %}
 
 <div
-class="racer {% if corredor == ganador %}winner{% endif %}"
+class="racer {% if corredor == positions[0] %}winner{% endif %}"
 data-score="{{ data.score }}"
 >
 
 <div class="racer-name">
 {{ data.icon }} {{ data.nombre }}
+{% if data.pos %}<span style="color:#ffaa00;font-size:6px;margin-left:4px;">{{ data.pos }}</span>{% endif %}
 </div>
 
 <div class="race-track">
@@ -3043,13 +3273,48 @@ style="background:{{ data.color }}">
 
 {% endfor %}
 
+<div class="derby-podium">
+<div class="derby-podium-position p2">
+<div class="podium-icon">{{ carrera[positions[1]].icon }}</div>
+<div class="podium-bar">2do</div>
+<div style="font-size:6px;color:#aaa;">{{ carrera[positions[1]].nombre }}</div>
+</div>
+<div class="derby-podium-position p1">
+<div class="podium-icon">{{ carrera[positions[0]].icon }}</div>
+<div class="podium-bar">1ro</div>
+<div style="font-size:6px;color:#aaa;">{{ carrera[positions[0]].nombre }}</div>
+</div>
+<div class="derby-podium-position p3">
+<div class="podium-icon">{{ carrera[positions[2]].icon }}</div>
+<div class="podium-bar">3ro</div>
+<div style="font-size:6px;color:#aaa;">{{ carrera[positions[2]].nombre }}</div>
+</div>
+</div>
+
 <div id="raceResult" class="race-result">
-🏆 ¡{{ carrera[ganador].nombre|upper }} GANÓ! 🏆
+🏆 ¡{{ carrera[positions[0]].nombre|upper }} GANÓ! 🏆
 </div>
 
 </div>
 
 <script>
+
+function derbyToggleBetType() {
+    var tipo = document.getElementById("tipoApuesta").value;
+    var ex2 = document.getElementById("derbyExtra2");
+    var ex3 = document.getElementById("derbyExtra3");
+    if (tipo === "GANADOR") {
+        ex2.style.display = "none";
+        ex3.style.display = "none";
+    } else if (tipo === "EXACTA") {
+        ex2.style.display = "block";
+        ex3.style.display = "none";
+    } else {
+        ex2.style.display = "block";
+        ex3.style.display = "block";
+    }
+}
+derbyToggleBetType();
 
 const racers = document.querySelectorAll(".racer");
 const result = document.getElementById("raceResult");
@@ -3114,6 +3379,7 @@ def derby():
     victoria = False
     carrera = None
     ganador = None
+    positions = None
 
     corredores = {
         "ROJO": {
@@ -3138,6 +3404,23 @@ def derby():
         }
     }
 
+    cuotas = {
+        "ROJO": 2,
+        "VERDE": 3,
+        "AZUL": 4,
+        "DORADO": 8
+    }
+
+    probabilidades = {
+        "ROJO": 40,
+        "VERDE": 28,
+        "AZUL": 22,
+        "DORADO": 10
+    }
+
+    mult_exacta = 8
+    mult_trifecta = 30
+
     if request.method == "POST":
         apuesta = calcular_apuesta_monto(
             request.form.get("apuesta"),
@@ -3145,6 +3428,9 @@ def derby():
         )
 
         corredor_elegido = request.form.get("corredor")
+        tipo_apuesta = request.form.get("tipo_apuesta", "GANADOR")
+        corredor2 = request.form.get("corredor2", "")
+        corredor3 = request.form.get("corredor3", "")
 
         if corredor_elegido not in corredores:
             mensaje = "Corredor invalido."
@@ -3156,6 +3442,7 @@ def derby():
             mensaje = "No tienes suficientes Perikoins."
 
         else:
+            # Generar scores y determinar posiciones
             scores = {
                 "ROJO": random.randint(30, 100),
                 "VERDE": random.randint(25, 100),
@@ -3163,36 +3450,97 @@ def derby():
                 "DORADO": random.randint(10, 100)
             }
 
-            ganador = max(
-                scores,
-                key=scores.get
+            # Ordenar por score descendente para obtener posiciones
+            positions = sorted(
+                scores.keys(),
+                key=scores.get,
+                reverse=True
             )
-
-            cuotas = {
-                "ROJO": 2,
-                "VERDE": 3,
-                "AZUL": 4,
-                "DORADO": 8
-            }
+            ganador = positions[0]
 
             carrera = {}
-
-            for nombre, datos in corredores.items():
+            pos_labels = ["🥇", "🥈", "🥉", "4°"]
+            for i, nombre in enumerate(positions):
                 carrera[nombre] = {
-                    **datos,
-                    "score": scores[nombre]
+                    **corredores[nombre],
+                    "score": scores[nombre],
+                    "pos": pos_labels[i]
                 }
 
-            if corredor_elegido == ganador:
-                mult = cuotas[corredor_elegido]
-                ganancia = apuesta * mult
+            gano = False
+            mult = 0
 
-                mensaje = (
-                    f"🏆 GANO EL {corredores[ganador]['nombre']}! "
-                    f"Ganaste {ganancia} Perikoins "
-                    f"(x{mult})!"
-                )
+            if tipo_apuesta == "GANADOR":
+                if corredor_elegido == ganador:
+                    gano = True
+                    mult = cuotas[corredor_elegido]
+                    mensaje = (
+                        f"🏆 GANO EL {corredores[ganador]['nombre']}! "
+                        f"Ganaste {apuesta * mult} Perikoins "
+                        f"(x{mult})!"
+                    )
+                else:
+                    mensaje = (
+                        f"GANO EL {corredores[ganador]['nombre']}. "
+                        f"Tu corredor perdió. "
+                        f"Perdiste {apuesta} Perikoins."
+                    )
 
+            elif tipo_apuesta == "EXACTA":
+                if not corredor2 or corredor2 not in corredores:
+                    mensaje = "Selecciona un 2do corredor para la Exacta."
+                elif corredor2 == corredor_elegido:
+                    mensaje = "No puedes repetir corredores en la Exacta."
+                else:
+                    if positions[0] == corredor_elegido and positions[1] == corredor2:
+                        gano = True
+                        mult = mult_exacta
+                        mensaje = (
+                            f"🎯 EXACTA PERFECTA! "
+                            f"1ro: {corredores[positions[0]]['nombre']}, "
+                            f"2do: {corredores[positions[1]]['nombre']}! "
+                            f"Ganaste {apuesta * mult} Perikoins "
+                            f"(x{mult})!"
+                        )
+                    else:
+                        mensaje = (
+                            f"Exacta fallida. "
+                            f"1ro: {corredores[positions[0]]['nombre']}, "
+                            f"2do: {corredores[positions[1]]['nombre']}. "
+                            f"Perdiste {apuesta} Perikoins."
+                        )
+
+            elif tipo_apuesta == "TRIFECTA":
+                if not corredor2 or corredor2 not in corredores:
+                    mensaje = "Selecciona 2do y 3er corredor para la Trifecta."
+                elif not corredor3 or corredor3 not in corredores:
+                    mensaje = "Selecciona un 3er corredor para la Trifecta."
+                elif len(set([corredor_elegido, corredor2, corredor3])) < 3:
+                    mensaje = "No puedes repetir corredores en la Trifecta."
+                else:
+                    if (positions[0] == corredor_elegido
+                            and positions[1] == corredor2
+                            and positions[2] == corredor3):
+                        gano = True
+                        mult = mult_trifecta
+                        mensaje = (
+                            f"💎 TRIFECTA PERFECTA! "
+                            f"1ro: {corredores[positions[0]]['nombre']}, "
+                            f"2do: {corredores[positions[1]]['nombre']}, "
+                            f"3ro: {corredores[positions[2]]['nombre']}! "
+                            f"Ganaste {apuesta * mult} Perikoins "
+                            f"(x{mult})!"
+                        )
+                    else:
+                        mensaje = (
+                            f"Trifecta fallida. "
+                            f"1ro: {corredores[positions[0]]['nombre']}, "
+                            f"2do: {corredores[positions[1]]['nombre']}, "
+                            f"3ro: {corredores[positions[2]]['nombre']}. "
+                            f"Perdiste {apuesta} Perikoins."
+                        )
+
+            if gano:
                 victoria, mensaje = procesar_apuesta(
                     usuario,
                     apuesta,
@@ -3201,14 +3549,7 @@ def derby():
                     mensaje,
                     ""
                 )
-
-            else:
-                mensaje = (
-                    f"GANO EL {corredores[ganador]['nombre']}. "
-                    f"Tu corredor perdió. "
-                    f"Perdiste {apuesta} Perikoins."
-                )
-
+            elif mult == 0 and mensaje and "Perdiste" in mensaje:
                 victoria, mensaje = procesar_apuesta(
                     usuario,
                     apuesta,
@@ -3233,6 +3574,379 @@ def derby():
         opciones=opciones,
         carrera=carrera,
         ganador=ganador,
+        positions=positions or ["ROJO", "VERDE", "AZUL", "DORADO"],
+        cuotas=cuotas,
+        probabilidades=probabilidades,
+        mult_exacta=mult_exacta,
+        mult_trifecta=mult_trifecta,
+        mensaje=mensaje,
+        victoria=victoria
+    )
+
+
+# ============================================================
+# CRASH ROCKET
+# ============================================================
+
+import math as _math
+
+# Historial global de crashes (multiplicadores de las últimas 20 rondas)
+CRASH_HISTORY = []
+MAX_CRASH_HISTORY = 20
+
+
+def generar_crash_point():
+    """Genera un punto de crash con distribución justa.
+    ~4% de probabilidad de crash instantaneo (x1.00).
+    El house edge es ~3%.
+    Retorna el multiplicador donde crashea."""
+    e = 2.718281828459045
+    r = random.random()
+    if r < 0.04:
+        return 1.00
+    crash = max(1.00, (1 / (1 - r)) * 0.97)
+    return round(crash, 2)
+
+
+HTML_CRASH = CSS + """
+
+<div class="arcade-box" data-game="CRASH ROCKET">
+
+<h1>📈 CRASH ROCKET 🚀</h1>
+
+<div class="badge">
+SALDO: {{ usuario.perikoins }} P
+</div>
+
+<p style="font-size:7px;color:#00ffcc">
+¡APUESTA Y RETÍRATE ANTES DE QUE CRASHEE!
+</p>
+
+{% if mensaje %}
+<div class="{% if victoria %}win{% else %}msg{% endif %}">
+{{ mensaje }}
+</div>
+{% endif %}
+
+{% if not resultado %}
+<form method="POST" id="crashForm">
+
+<label>CANTIDAD A APOSTAR</label>
+
+<div style="margin:8px auto;max-width:260px;">
+<label style="font-size:7px;color:#ff6600;">RETIRARSE EN MULTIP. (ej: 1.50)</label>
+<input type="number" name="cashout_target" min="1.01" max="100" step="0.01" placeholder="Auto"
+  style="width:100%;padding:6px;background:#0a0a1a;border:2px solid #ff6600;color:#ff6600;font-family:'Press Start 2P',monospace;font-size:7px;text-align:center;">
+</div>
+
+<div class="grid">
+
+{% for cantidad in [10,50,100,250,500,1000,5000,10000] %}
+
+<button
+class="chip"
+name="apuesta"
+value="{{ cantidad }}"
+type="submit">
+{{ cantidad }}
+</button>
+
+{% endfor %}
+
+<button
+class="allin"
+name="apuesta"
+value="ALLIN"
+type="submit">
+ALL IN
+</button>
+
+</div>
+
+</form>
+{% endif %}
+
+{% if resultado %}
+
+<div class="crash-container">
+
+<div class="crash-graph">
+    <div class="crash-multiplier {% if resultado == 'crashed' %}crashed{% elif resultado == 'cashed' %}cashed{% endif %}" id="crashMult">
+        x1.00
+    </div>
+    <div class="crash-line" id="crashLine" style="width:0;height:0;background:linear-gradient(45deg,#ff6600,#ff0033);"></div>
+    <div class="crash-rocket" id="crashRocket" style="left:5px;bottom:10px;">🚀</div>
+</div>
+
+{% if resultado == 'cashed' %}
+<div class="crash-cashout-btn" style="animation:none;background:#00ff6622;border-color:#00ff66;color:#00ff66;">
+    ✅ TE RETIRASTE EN x{{ cashout_mult }} — GANASTE {{ ganancia }} P
+</div>
+{% elif resultado == 'crashed' %}
+<div class="crash-cashout-btn" style="animation:none;background:#ff003322;border-color:#ff0033;color:#ff0033;">
+    💥 CRASH EN x{{ crash_point }} — PERDISTE {{ apuesta_hecha }} P
+</div>
+{% endif %}
+
+<div class="crash-history">
+{% for h in historial %}
+<span class="crash-history-item {{ 'green' if h >= 2 else 'red' }}">x{{ h }}</span>
+{% endfor %}
+</div>
+
+</div>
+
+<script>
+(function() {
+    const crashPoint = {{ crash_point }};
+    const cashoutMult = {{ cashout_mult | default(0) }};
+    const resultado = "{{ resultado }}";
+    const multEl = document.getElementById("crashMult");
+    const lineEl = document.getElementById("crashLine");
+    const rocketEl = document.getElementById("crashRocket");
+    const graphW = lineEl.parentElement.offsetWidth;
+    const graphH = 180;
+    const maxDisplay = Math.max(crashPoint * 1.3, 5);
+    const totalFrames = 150;
+    const frameDuration = 40;
+    let frame = 0;
+
+    function animate() {
+        if (frame >= totalFrames) {
+            if (resultado === "crashed") {
+                multEl.textContent = "x" + crashPoint.toFixed(2);
+                multEl.classList.add("crashed");
+                rocketEl.classList.add("exploded");
+                rocketEl.textContent = "💥";
+                lineEl.style.boxShadow = "0 0 15px #ff0033";
+            }
+            return;
+        }
+        frame++;
+        let progress = frame / totalFrames;
+        let currentMult = 1 + (crashPoint - 1) * progress;
+        if (resultado === "cashed" && currentMult >= cashoutMult) {
+            currentMult = cashoutMult;
+            multEl.textContent = "x" + cashoutMult.toFixed(2);
+            multEl.classList.add("cashed");
+            rocketEl.textContent = "✅";
+            const xPos = Math.min((cashoutMult / maxDisplay) * (graphW - 10), graphW - 30);
+            const yPos = graphH - Math.min((cashoutMult / maxDisplay) * graphH, graphH - 15);
+            rocketEl.style.left = xPos + "px";
+            rocketEl.style.bottom = (graphH - yPos) + "px";
+            const w = xPos + 5;
+            const h = graphH - yPos;
+            lineEl.style.width = w + "px";
+            lineEl.style.height = h + "px";
+            lineEl.style.background = "linear-gradient(45deg,#00ff66,#00cc44)";
+            // Continue animation to show crash after cashout
+            setTimeout(function() {
+                let f2 = frame;
+                function showCrash() {
+                    if (f2 >= totalFrames) {
+                        multEl.textContent = "CRASH x" + crashPoint.toFixed(2);
+                        rocketEl.textContent = "💥";
+                        return;
+                    }
+                    f2++;
+                    let p2 = f2 / totalFrames;
+                    multEl.textContent = "x" + (1 + (crashPoint - 1) * p2).toFixed(2);
+                    requestAnimationFrame(showCrash);
+                }
+                showCrash();
+            }, 600);
+            return;
+        }
+        multEl.textContent = "x" + currentMult.toFixed(2);
+        const xPos = Math.min((currentMult / maxDisplay) * (graphW - 10), graphW - 30);
+        const yPos = graphH - Math.min((currentMult / maxDisplay) * graphH, graphH - 15);
+        rocketEl.style.left = xPos + "px";
+        rocketEl.style.bottom = (graphH - yPos) + "px";
+        const w = xPos + 5;
+        const h = graphH - yPos;
+        lineEl.style.width = w + "px";
+        lineEl.style.height = h + "px";
+        setTimeout(animate, frameDuration);
+    }
+
+    setTimeout(animate, 400);
+})();
+</script>
+
+{% else %}
+
+<div class="crash-history">
+{% for h in historial %}
+<span class="crash-history-item {{ 'green' if h >= 2 else 'red' }}">x{{ h }}</span>
+{% endfor %}
+</div>
+
+{% endif %}
+
+<a class="link" href="/menu">
+< VOLVER AL MENU
+</a>
+
+</div>
+
+</body>
+</html>
+"""
+
+
+@app.route("/juego/crash", methods=["GET", "POST"])
+def crash():
+    global CRASH_HISTORY
+    usuario = usuario_actual()
+
+    if not usuario:
+        return redirect(url_for("login"))
+
+    resultado = None
+    crash_point = 1.00
+    cashout_mult = 0
+    ganancia = 0
+    apuesta_hecha = 0
+    mensaje = ""
+    victoria = False
+
+    if request.method == "POST":
+        apuesta = calcular_apuesta_monto(
+            request.form.get("apuesta"),
+            usuario["perikoins"]
+        )
+
+        if apuesta <= 0:
+            mensaje = "Apuesta invalida."
+
+        elif apuesta > usuario["perikoins"]:
+            mensaje = "No tienes suficientes Perikoins."
+
+        else:
+            crash_point = generar_crash_point()
+
+            # Guardar en historial
+            CRASH_HISTORY.insert(0, crash_point)
+            if len(CRASH_HISTORY) > MAX_CRASH_HISTORY:
+                CRASH_HISTORY.pop()
+
+            # El jugador elige un multiplicador para retirarse
+            # Implementamos una estrategia: el jugador selecciona su cashout
+            # Usamos un selector en el form — pero para simplificar la UX
+            # usamos un cashout aleatorio ponderado (simula el instinto del jugador)
+            # Para más control, añadiremos un campo de cashout manual
+            cashout_target = None
+            cashout_str = request.form.get("cashout_target", "")
+
+            try:
+                if cashout_str:
+                    cashout_target = round(float(cashout_str), 2)
+                    if cashout_target < 1.01:
+                        cashout_target = None
+            except (ValueError, TypeError):
+                cashout_target = None
+
+            if cashout_target is None:
+                # Auto-generar un cashout basado en el comportamiento típico
+                # 60% retira entre x1.2-x2, 30% entre x2-x5, 10% x5+
+                r = random.random()
+                if r < 0.6:
+                    cashout_target = round(random.uniform(1.20, 2.00), 2)
+                elif r < 0.9:
+                    cashout_target = round(random.uniform(2.00, 5.00), 2)
+                else:
+                    cashout_target = round(random.uniform(5.00, 15.00), 2)
+
+            apuesta_hecha = apuesta
+
+            if crash_point >= cashout_target:
+                # El jugador se retiró a tiempo — gana!
+                resultado = "cashed"
+                cashout_mult = cashout_target
+                ganancia = int(apuesta * cashout_mult)
+                mult_final = cashout_mult
+
+                mensaje = (
+                    f"🚀 Te retiraste en x{cashout_mult:.2f}! "
+                    f"Ganaste {ganancia} Perikoins! "
+                    f"(El rocket crasheó en x{crash_point:.2f})"
+                )
+
+                victoria, mensaje = procesar_apuesta(
+                    usuario,
+                    apuesta,
+                    True,
+                    int(mult_final * 100) / 100,
+                    mensaje,
+                    ""
+                )
+                # Corregir: procesar_apuesta usa multiplicador entero, 
+                # pero crash usa decimales. Recalcular manualmente.
+                # procesar_apuesta ya hizo saldo += apuesta * mult,
+                # pero mult es int. Necesitamos ajustar.
+                # Vamos a hacerlo manual para crash:
+                db = get_db()
+                with db.cursor() as cur:
+                    cur.execute(
+                        "SELECT perikoins FROM usuarios WHERE username = %s",
+                        (usuario["username"],)
+                    )
+                    row = cur.fetchone()
+                    if row:
+                        # Deshacer el procesar_apuesta y recalcular con decimal
+                        saldo_actual = row[0]
+                        # El procesar_apuesta ya sumó apuesta * int(mult)
+                        # Necesitamos corregir: saldo correcto = saldo_sin_apuesta + ganancia_real
+                        # saldo_sin_apuesta = saldo_actual - (apuesta * int(mult_final))
+                        # ganancia_real = apuesta * cashout_mult
+                        # pero procesar_apuesta ya restó la apuesta y sumó apuesta*mult
+                        # Simplificamos: el saldo actual ya tiene el resultado de procesar_apuesta
+                        # que usó mult como int. Calculemos la diferencia.
+                        mult_entero_usado = int(mult_final)
+                        ganancia_correcta = int(apuesta * cashout_mult)
+                        ganancia_entera = apuesta * mult_entero_usado
+                        diferencia = ganancia_correcta - ganancia_entera
+                        nuevo = saldo_actual + diferencia
+                        cur.execute(
+                            "UPDATE usuarios SET perikoins = %s, max_perikoins = GREATEST(max_perikoins, %s) WHERE username = %s",
+                            (nuevo, nuevo, usuario["username"])
+                        )
+                db.commit()
+
+            else:
+                # Crash antes de cashout — pierde
+                resultado = "crashed"
+                cashout_mult = 0
+                ganancia = 0
+
+                mensaje = (
+                    f"💥 El rocket crasheó en x{crash_point:.2f}! "
+                    f"Querías retirarte en x{cashout_target:.2f}. "
+                    f"Perdiste {apuesta} Perikoins."
+                )
+
+                victoria, mensaje = procesar_apuesta(
+                    usuario,
+                    apuesta,
+                    False,
+                    0,
+                    "",
+                    mensaje
+                )
+
+            usuario = obtener_usuario(session["user"])
+
+    historial = CRASH_HISTORY[:MAX_CRASH_HISTORY]
+
+    return render_template_string(
+        HTML_CRASH,
+        usuario=usuario,
+        resultado=resultado,
+        crash_point=crash_point,
+        cashout_mult=cashout_mult,
+        ganancia=ganancia,
+        apuesta_hecha=apuesta_hecha,
+        historial=historial,
         mensaje=mensaje,
         victoria=victoria
     )
