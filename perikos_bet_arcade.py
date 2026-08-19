@@ -112,6 +112,32 @@ def exp_necesaria(nivel):
     return 5 + (nivel * 5)
 
 
+def titulo_por_nivel(nivel):
+    """Devuelve un titulo segOn el nivel del jugador."""
+    if nivel >= 400:
+        return "💀 Leyenda"
+    elif nivel >= 300:
+        return "🔥 Maestro"
+    elif nivel >= 200:
+        return "⚡ Veterano"
+    elif nivel >= 150:
+        return "🌟 Elite"
+    elif nivel >= 100:
+        return "⚔ Guerrero"
+    elif nivel >= 75:
+        return "🗡 Aspirante"
+    elif nivel >= 50:
+        return "🛡 Soldado"
+    elif nivel >= 30:
+        return "🎯 Aprendiz"
+    elif nivel >= 15:
+        return "🍄 Novato"
+    elif nivel >= 5:
+        return "🌱 Principiante"
+    else:
+        return "🐣 Recluta"
+
+
 
 def calcular_precio_prestigio(prestigio_actual):
     """
@@ -503,6 +529,24 @@ def init_db():
                 ALTER TABLE usuarios
                 ADD COLUMN IF NOT EXISTS exp
                 INTEGER NOT NULL DEFAULT 0
+            """)
+
+            cur.execute("""
+                ALTER TABLE usuarios
+                ADD COLUMN IF NOT EXISTS victorias
+                INTEGER NOT NULL DEFAULT 0
+            """)
+
+            cur.execute("""
+                ALTER TABLE usuarios
+                ADD COLUMN IF NOT EXISTS derrotas
+                INTEGER NOT NULL DEFAULT 0
+            """)
+
+            cur.execute("""
+                ALTER TABLE usuarios
+                ADD COLUMN IF NOT EXISTS max_perikoins
+                BIGINT NOT NULL DEFAULT 500
             """)
 
             cur.execute("""
@@ -2139,10 +2183,16 @@ def procesar_apuesta(
         cur.execute(
             """
             UPDATE usuarios
-            SET perikoins = %s
+            SET perikoins = %s,
+                victorias = victorias + %s,
+                derrotas = derrotas + %s,
+                max_perikoins = GREATEST(max_perikoins, %s)
             WHERE username = %s
             """,
             (
+                nuevo_saldo,
+                1 if ganado else 0,
+                0 if ganado else 1,
                 nuevo_saldo,
                 usuario["username"]
             )
@@ -4090,14 +4140,23 @@ HTML_PERFIL = CSS + """
 {{ usuario.username }}
 </div>
 
-<div class="badge" style="background:transparent;">
-<span style="color:#ffaa00;font-size:9px;">⭐ PRESTIGIO: {{ usuario.prestigio }}</span>
+<div class="badge" style="background:#111;border:1px solid #ffaa00;">
+<span style="color:#ffaa00;font-size:10px;">{{ titulo }}</span>
 </div>
 
-<div class="badge" style="background:transparent;">
-<span style="color:#00ffcc;font-size:9px;">🅑 NIVEL {{ usuario.nivel }}</span>
-<br>
-<span style="color:#aaa;font-size:7px;">EXP: {{ usuario.exp }} / {{ exp_siguiente }}</span>
+<!-- STATS PRINCIPALES -->
+<div class="chest" style="border-color:#00ffcc;background:#0a0a0a;">
+    <h2 style="color:#00ffcc;font-size:10px;">📊 ESTADÍSTICAS</h2>
+    <table style="width:100%;font-size:8px;border-collapse:collapse;">
+    <tr><td style="color:#0f0;padding:3px 8px;">🏆 Victorias</td><td style="color:#0f0;font-weight:bold;">{{ usuario.victorias }}</td></tr>
+    <tr><td style="color:#f44;padding:3px 8px;">💀 Derrotas</td><td style="color:#f44;font-weight:bold;">{{ usuario.derrotas }}</td></tr>
+    <tr><td style="color:#ff0;padding:3px 8px;">📈 Win Rate</td><td style="color:#ff0;font-weight:bold;">{{ winrate }}%</td></tr>
+    <tr><td style="color:#0ff;padding:3px 8px;">🅑 Nivel</td><td style="color:#0ff;font-weight:bold;">{{ usuario.nivel }} <span style="color:#aaa;font-size:7px;">(EXP {{ usuario.exp }}/{{ exp_siguiente }})</span></td></tr>
+    <tr><td style="color:#ffaa00;padding:3px 8px;">⭐ Prestigio</td><td style="color:#ffaa00;font-weight:bold;">{{ usuario.prestigio }}</td></tr>
+    <tr><td style="color:#0f0;padding:3px 8px;">💰 Perikoins</td><td style="color:#0f0;font-weight:bold;">{{ usuario.perikoins }}</td></tr>
+    <tr><td style="color:#f0f;padding:3px 8px;">💎 Max Perikoins</td><td style="color:#f0f;font-weight:bold;">{{ usuario.max_perikoins }}</td></tr>
+    <tr><td style="color:#aaa;padding:3px 8px;">📅 Miembro desde</td><td style="color:#ccc;font-weight:bold;">{{ fecha_registro }}</td></tr>
+    </table>
 </div>
 
 <p style="font-size:8px">
@@ -4214,6 +4273,14 @@ def perfil():
 
     exp_siguiente = exp_necesaria(usuario["nivel"]) if usuario["nivel"] < NIVEL_MAXIMO else 0
 
+    # Calcular stats avanzadas
+    titulo = titulo_por_nivel(usuario["nivel"])
+    vic = usuario.get("victorias", 0) or 0
+    der = usuario.get("derrotas", 0) or 0
+    winrate = round(vic / (vic + der) * 100, 1) if (vic + der) > 0 else 0.0
+    creado = usuario.get("creado_en")
+    fecha_registro = creado.strftime("%d/%m/%Y") if creado else "Desconocida"
+
     return render_template_string(
         HTML_PERFIL,
         usuario=usuario,
@@ -4225,7 +4292,47 @@ def perfil():
         color_estilo=color_estilo,
         mensaje_color=mensaje_color,
         color_ganado=color_ganado,
-        exp_siguiente=exp_siguiente
+        exp_siguiente=exp_siguiente,
+        titulo=titulo,
+        winrate=winrate,
+        fecha_registro=fecha_registro
+    )
+
+
+@app.route("/perfil/<username>")
+def perfil_publico(username):
+    yo = usuario_actual()
+    if not yo:
+        return redirect(url_for("login"))
+
+    db = get_db()
+    with db.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(
+            "SELECT * FROM usuarios WHERE username = %s",
+            (username,)
+        )
+        objetivo = cur.fetchone()
+
+    if not objetivo:
+        return render_template_string(CSS + '<div class="arcade-box"><h1>404</h1><p>Usuario no encontrado.</p><a class="link" href="/ranking">< VOLVER</a></div></body></html>'), 404
+
+    avatar_pub = AVATARES_DB.get(objetivo["avatar_activo"], AVATARES_DB[1])
+    color_estilo_pub = obtener_estilo_color(objetivo["color_nombre"])
+    titulo = titulo_por_nivel(objetivo["nivel"])
+    vic = objetivo.get("victorias", 0) or 0
+    der = objetivo.get("derrotas", 0) or 0
+    winrate = round(vic / (vic + der) * 100, 1) if (vic + der) > 0 else 0.0
+    creado = objetivo.get("creado_en")
+    fecha_registro = creado.strftime("%d/%m/%Y") if creado else "Desconocida"
+
+    return render_template_string(
+        HTML_PERFIL_PUBLICO,
+        objetivo=objetivo,
+        avatar_pub=avatar_pub,
+        color_estilo_pub=color_estilo_pub,
+        titulo=titulo,
+        winrate=winrate,
+        fecha_registro=fecha_registro
     )
 
 
@@ -4256,9 +4363,9 @@ HTML_RANKING = CSS + """
 <td>
     {{ j.avatar.icon }}
 
-    <span style="{{ j.color_estilo }}">
+    <a href="/perfil/{{ j.username }}" style="text-decoration:none;{{ j.color_estilo }}">
         {{ j.username }}
-    </span>
+    </a>
 </td>
 
 <td style="color:#00ffcc;">
@@ -4284,6 +4391,51 @@ HTML_RANKING = CSS + """
 <a class="link" href="/menu">
 < VOLVER
 </a>
+
+</div>
+
+</body>
+</html>
+"""
+
+
+HTML_PERFIL_PUBLICO = CSS + """
+
+<div class="arcade-box">
+
+<h1>PERFIL DE {{ objetivo.username }}</h1>
+
+<div class="badge">
+{{ avatar_pub.icon }}
+<br>
+{{ avatar_pub.nombre }}
+</div>
+
+<div class="name-color" style="{{ color_estilo_pub }}">
+{{ objetivo.username }}
+</div>
+
+<div class="badge" style="background:#111;border:1px solid #ffaa00;">
+<span style="color:#ffaa00;font-size:10px;">{{ titulo }}</span>
+</div>
+
+<!-- STATS PUBLICOS -->
+<div class="chest" style="border-color:#00ffcc;background:#0a0a0a;">
+    <h2 style="color:#00ffcc;font-size:10px;">📊 ESTADÍSTICAS</h2>
+    <table style="width:100%;font-size:8px;border-collapse:collapse;">
+    <tr><td style="color:#0f0;padding:3px 8px;">🏆 Victorias</td><td style="color:#0f0;font-weight:bold;">{{ objetivo.victorias }}</td></tr>
+    <tr><td style="color:#f44;padding:3px 8px;">💀 Derrotas</td><td style="color:#f44;font-weight:bold;">{{ objetivo.derrotas }}</td></tr>
+    <tr><td style="color:#ff0;padding:3px 8px;">📈 Win Rate</td><td style="color:#ff0;font-weight:bold;">{{ winrate }}%</td></tr>
+    <tr><td style="color:#0ff;padding:3px 8px;">🅑 Nivel</td><td style="color:#0ff;font-weight:bold;">{{ objetivo.nivel }}</td></tr>
+    <tr><td style="color:#ffaa00;padding:3px 8px;">⭐ Prestigio</td><td style="color:#ffaa00;font-weight:bold;">{{ objetivo.prestigio }}</td></tr>
+    <tr><td style="color:#0f0;padding:3px 8px;">💰 Perikoins</td><td style="color:#0f0;font-weight:bold;">{{ objetivo.perikoins }}</td></tr>
+    <tr><td style="color:#f0f;padding:3px 8px;">💎 Max Perikoins</td><td style="color:#f0f;font-weight:bold;">{{ objetivo.max_perikoins }}</td></tr>
+    <tr><td style="color:#aaa;padding:3px 8px;">📅 Miembro desde</td><td style="color:#ccc;font-weight:bold;">{{ fecha_registro }}</td></tr>
+    </table>
+</div>
+
+<a class="link" href="/ranking">< VOLVER AL RANKING</a>
+<a class="link" href="/menu">< VOLVER AL MENÚ</a>
 
 </div>
 
