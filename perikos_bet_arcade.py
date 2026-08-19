@@ -112,8 +112,10 @@ def exp_necesaria(nivel):
     return 5 + (nivel * 5)
 
 
-def titulo_por_nivel(nivel):
-    """Devuelve un titulo segOn el nivel del jugador."""
+def titulo_por_nivel(nivel, username=None, titulo_custom=None):
+    """Devuelve el titulo del jugador. Si tiene titulo_custom lo usa."""
+    if titulo_custom:
+        return titulo_custom
     if nivel >= 400:
         return "💀 Leyenda"
     elif nivel >= 300:
@@ -547,6 +549,19 @@ def init_db():
                 ALTER TABLE usuarios
                 ADD COLUMN IF NOT EXISTS max_perikoins
                 BIGINT NOT NULL DEFAULT 500
+            """)
+
+            cur.execute("""
+                ALTER TABLE usuarios
+                ADD COLUMN IF NOT EXISTS titulo_custom
+                TEXT DEFAULT NULL
+            """)
+
+            # Titulo exclusivo del creador
+            cur.execute("""
+                UPDATE usuarios
+                SET titulo_custom = '👑 EL CREADOR'
+                WHERE username = 'periko'
             """)
 
             cur.execute("""
@@ -4274,7 +4289,7 @@ def perfil():
     exp_siguiente = exp_necesaria(usuario["nivel"]) if usuario["nivel"] < NIVEL_MAXIMO else 0
 
     # Calcular stats avanzadas
-    titulo = titulo_por_nivel(usuario["nivel"])
+    titulo = titulo_por_nivel(usuario["nivel"], titulo_custom=usuario.get("titulo_custom"))
     vic = usuario.get("victorias", 0) or 0
     der = usuario.get("derrotas", 0) or 0
     winrate = round(vic / (vic + der) * 100, 1) if (vic + der) > 0 else 0.0
@@ -4318,7 +4333,7 @@ def perfil_publico(username):
 
     avatar_pub = AVATARES_DB.get(objetivo["avatar_activo"], AVATARES_DB[1])
     color_estilo_pub = obtener_estilo_color(objetivo["color_nombre"])
-    titulo = titulo_por_nivel(objetivo["nivel"])
+    titulo = titulo_por_nivel(objetivo["nivel"], titulo_custom=objetivo.get("titulo_custom"))
     vic = objetivo.get("victorias", 0) or 0
     der = objetivo.get("derrotas", 0) or 0
     winrate = round(vic / (vic + der) * 100, 1) if (vic + der) > 0 else 0.0
