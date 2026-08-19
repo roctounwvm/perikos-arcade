@@ -79,6 +79,8 @@ AVATARES_DB = {
 
 MODO_MANTENIMIENTO = False
 MODO_CARNAVAL = False
+MODO_OSCURO = False
+MODO_DIVINO = False
 COSTO_MAQUINA_COLORES = 10000  # cada giro cuesta 10,000
 COSTO_MONEDA_PRESTIGIO = 1000000000  # 1,000,000,000 perikoins por 1 moneda de prestigio (legacy, no se usa)
 
@@ -1556,6 +1558,112 @@ label { color: #ff88ff; }
 </div>
 {% endif %}
 
+{% if oscuro %}
+<style>
+.oscuro-banner {
+    background: linear-gradient(90deg, #111111, #330000, #111111, #001133, #111111);
+    background-size: 400% 100%;
+    animation: oscuro-gradient 3s linear infinite;
+    color: #ff3333;
+    text-align: center;
+    padding: 10px 0;
+    font-weight: bold;
+    font-size: 1.1em;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+    border-bottom: 3px solid #ff0000;
+    width: 100%;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 100;
+}
+@keyframes oscuro-gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+.arcade-box {
+    border-color: #330000;
+    box-shadow: 0 0 20px #220000, inset 0 0 15px #110000;
+}
+body {
+    background-color: #050505;
+    background-image:
+        linear-gradient(rgba(100,0,0,.12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(100,0,0,.12) 1px, transparent 1px);
+    background-size: 30px 30px;
+}
+h1 { color: #aa0000; }
+.btn { background: #440000; border-bottom-color: #220000; }
+.btn-green { background: #003300; color: #00ff00; }
+.btn-yellow { background: #332200; color: #ffaa00; }
+.btn-red { background: #550000; }
+.btn-purple { background: #220022; }
+input, select, textarea { border-color: #440000; background: #0a0a0a; color: #aa0000; }
+label { color: #884444; }
+.msg { border-color: #440000; color: #aa0000; }
+.chip { background: #440000; border-bottom-color: #220000; }
+.link { color: #884444; }
+.game-card { border-color: #330000; background: rgba(50,0,0,.15); }
+.game-card:hover { box-shadow: 0 0 12px #440000; background: rgba(50,0,0,.25); }
+</style>
+<div class="oscuro-banner">
+    🖤 ¡MODO OSCURO ACTIVADO! 🖤 — Ganancias x3 · EXP x3 — 🩸💀
+</div>
+{% endif %}
+
+{% if divino %}
+<style>
+.divino-banner {
+    background: linear-gradient(90deg, #00ffff, #ffff00, #00ffff, #ffff00, #00ffff);
+    background-size: 400% 100%;
+    animation: divino-gradient 2s linear infinite;
+    color: #000;
+    text-align: center;
+    padding: 10px 0;
+    font-weight: bold;
+    font-size: 1.1em;
+    text-shadow: 0 0 8px rgba(255,255,255,.6);
+    border-bottom: 3px solid #00ffff;
+    width: 100%;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 100;
+}
+@keyframes divino-gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+.arcade-box {
+    border-color: #00ffff;
+    box-shadow: 0 0 30px #00ffff, 0 0 30px #ffff00, inset 0 0 20px #00ffff;
+}
+body {
+    background-color: #001a1a;
+    background-image:
+        linear-gradient(rgba(0,255,255,.15) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,0,.1) 1px, transparent 1px);
+    background-size: 30px 30px;
+}
+h1 { color: #00ffff; text-shadow: 0 0 10px #00ffff; }
+.btn { background: #00cccc; border-bottom-color: #008888; }
+.btn-green { background: #00ffee; }
+.btn-yellow { background: #ffff00; }
+.btn-red { background: #00dddd; }
+.btn-purple { background: #00cccc; }
+input, select, textarea { border-color: #00ffff; color: #00ffff; }
+label { color: #88ffff; }
+.msg { border-color: #00ffff; color: #88ffff; }
+.chip { background: #00ffff; border-bottom-color: #008888; }
+.link { color: #88ffff; }
+.game-card { border-color: #00ffff; background: rgba(0,255,255,.1); }
+.game-card:hover { box-shadow: 0 0 16px #00ffff, 0 0 16px #ffff00; background: rgba(0,255,255,.2); }
+</style>
+<div class="divino-banner">
+    ✨ ¡MODO DIVINO ACTIVADO! ✨ — Ganancias x4 · EXP x4 — 🌟⚡
+</div>
+{% endif %}
+
 {% if global_mensaje %}
 <div class="global-banner">
     <span class="global-banner-icon">📢</span>
@@ -1795,7 +1903,7 @@ def contexto_global():
         # Un anuncio nunca debe impedir que cargue el arcade.
         print("ERROR AL CARGAR MENSAJE GLOBAL:", e)
 
-    return {"global_mensaje": global_mensaje, "carnaval": MODO_CARNAVAL}
+    return {"global_mensaje": global_mensaje, "carnaval": MODO_CARNAVAL, "oscuro": MODO_OSCURO, "divino": MODO_DIVINO}
 
 
 HTML_MENU = CSS + """
@@ -2009,10 +2117,19 @@ def procesar_apuesta(
 
         if ganado:
             mult_real = multiplicador
+            modo_activo = None
             if MODO_CARNAVAL:
                 mult_real = multiplicador * 2
-                if mensaje_gana:
-                    mensaje_gana += " 🎉 ¡CARNAVAL x2!"
+                modo_activo = "CARNAVAL x2"
+            if MODO_OSCURO:
+                mult_real = multiplicador * 3
+                modo_activo = "OSCURO x3"
+            if MODO_DIVINO:
+                mult_real = multiplicador * 4
+                modo_activo = "DIVINO x4"
+            if mensaje_gana:
+                if modo_activo:
+                    mensaje_gana += f" 🌑 ¡{modo_activo}!"
             nuevo_saldo = saldo + (apuesta * mult_real)
             mensaje = mensaje_gana
         else:
@@ -2040,12 +2157,19 @@ def procesar_apuesta(
             "timestamp": _time.time(),
             "usuario": usuario["username"],
             "tipo": "Ganó" if ganado else "Perdió",
-            "cantidad": apuesta * (multiplicador * (2 if MODO_CARNAVAL else 1)) if ganado else apuesta,
+            "cantidad": apuesta * (multiplicador * (2 if MODO_CARNAVAL else 1) * (3 if MODO_OSCURO else 1) * (4 if MODO_DIVINO else 1)) if ganado else apuesta,
             "juego": mensaje_gana[:30] if ganado else mensaje_pierde[:30]
         })
 
     if ganado:
-        exp_cantidad = EXP_POR_VICTORIA * 2 if MODO_CARNAVAL else EXP_POR_VICTORIA
+        exp_mult = 1
+        if MODO_CARNAVAL:
+            exp_mult = 2
+        if MODO_OSCURO:
+            exp_mult = 3
+        if MODO_DIVINO:
+            exp_mult = 4
+        exp_cantidad = EXP_POR_VICTORIA * exp_mult
         dar_exp(usuario["username"], cantidad=exp_cantidad)
 
     return ganado, mensaje
@@ -4297,21 +4421,15 @@ HTML_ADMIN = CSS + """
 </div>
 
 
-<div class="chest" style="border-color:#ff00ff;">
-    <h2 style="color:#ff00ff;font-size:10px;">🎭 MODO CARNAVAL</h2>
+<div class="chest" style="border-color:#ff0055;">
+    <h2 style="color:#ff0055;font-size:10px;">💀 ADMIN ABUSE</h2>
     <p style="font-size:7px;color:#aaa;line-height:1.7;">
-        Estado actual: 
-        <strong style="color: {% if carnaval %}#ff00ff{% else %}#00ff00{% endif %};">
-            {% if carnaval %}ACTIVADO 🎉{% else %}DESACTIVADO{% endif %}
-        </strong>
-        <br>Si está activo: colores invertidos + ganancias x2 en todos los juegos.
+        Modos especiales y secretos del arcade.<br>
+        Carnaval, efectos visuales y más...
     </p>
-    <form method="POST" action="/admin">
-        <input type="hidden" name="accion_admin" value="carnaval">
-        <button class="btn {% if carnaval %}btn-green{% else %}btn-red{% endif %}" type="submit">
-            {% if carnaval %}DESACTIVAR CARNAVAL{% else %}ACTIVAR CARNAVAL{% endif %}
-        </button>
-    </form>
+    <a class="btn btn-red" href="/admin/abuse">
+        💀 ENTRAR AL ADMIN ABUSE
+    </a>
 </div>
 
 
@@ -4509,6 +4627,81 @@ type="submit"
 </html>
 """
 
+HTML_ADMIN_ABUSE = CSS + """
+<div class="arcade-box">
+
+<h1 style="color:#ff0055">💀 ADMIN ABUSE</h1>
+
+<div class="badge" style="background:#ff0055;color:#fff;">☠️ ZONA DE PODER ABSOLUTO</div>
+
+{% if mensaje %}
+<div class="msg">{{ mensaje }}</div>
+{% endif %}
+
+
+<div class="chest" style="border-color:#ff00ff;">
+    <h2 style="color:#ff00ff;font-size:10px;">🎭 MODO CARNAVAL</h2>
+    <p style="font-size:7px;color:#aaa;line-height:1.7;">
+        Estado actual: 
+        <strong style="color: {% if carnaval %}#ff00ff{% else %}#00ff00{% endif %};">
+            {% if carnaval %}ACTIVADO 🎉{% else %}DESACTIVADO{% endif %}
+        </strong>
+        <br>Si está activo: colores invertidos + ganancias x2 en todos los juegos.
+    </p>
+    <form method="POST" action="/admin/abuse">
+        <input type="hidden" name="accion_abuse" value="carnaval">
+        <button class="btn {% if carnaval %}btn-green{% else %}btn-red{% endif %}" type="submit">
+            {% if carnaval %}DESACTIVAR CARNAVAL{% else %}ACTIVAR CARNAVAL{% endif %}
+        </button>
+    </form>
+</div>
+
+
+<div class="chest" style="border-color:#880000;background:#1a0000;">
+    <h2 style="color:#cc0000;font-size:10px;">🌑 MODO OSCURO</h2>
+    <p style="font-size:7px;color:#aaa;line-height:1.7;">
+        Estado actual: 
+        <strong style="color: {% if oscuro %}#cc0000{% else %}#00ff00{% endif %};">
+            {% if oscuro %}ACTIVADO 🌑{% else %}DESACTIVADO{% endif %}
+        </strong>
+        <br>Si está activo: esquema oscuro siniestro + ganancias x3 · EXP x3 en todos los juegos.
+    </p>
+    <form method="POST" action="/admin/abuse">
+        <input type="hidden" name="accion_abuse" value="oscuro">
+        <button class="btn {% if oscuro %}btn-green{% else %}btn-red{% endif %}" type="submit">
+            {% if oscuro %}DESACTIVAR OSCURO{% else %}ACTIVAR OSCURO{% endif %}
+        </button>
+    </form>
+</div>
+
+<div class="chest" style="border-color:#00cccc;background:#001a1a;">
+    <h2 style="color:#00ffff;font-size:10px;">✨ MODO DIVINO</h2>
+    <p style="font-size:7px;color:#aaa;line-height:1.7;">
+        Estado actual: 
+        <strong style="color: {% if divino %}#00ffff{% else %}#00ff00{% endif %};">
+            {% if divino %}ACTIVADO ✨{% else %}DESACTIVADO{% endif %}
+        </strong>
+        <br>Si está activo: esquema cyan + dorado + ganancias x4 · EXP x4 en todos los juegos.
+    </p>
+    <form method="POST" action="/admin/abuse">
+        <input type="hidden" name="accion_abuse" value="divino">
+        <button class="btn {% if divino %}btn-green{% else %}btn-red{% endif %}" type="submit">
+            {% if divino %}DESACTIVAR DIVINO{% else %}ACTIVAR DIVINO{% endif %}
+        </button>
+    </form>
+</div>
+
+<a class="link" href="/admin">
+< VOLVER AL PANEL ADMIN
+</a>
+
+</div>
+
+</body>
+</html>
+"""
+
+
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
     global MODO_MANTENIMIENTO, MODO_CARNAVAL, REGISTRO_ACTIVO, REGISTRO_MOVIMIENTOS
@@ -4541,23 +4734,7 @@ def admin():
                 registro_movimientos=[]
             )
 
-        if accion_admin == "carnaval":
-            MODO_CARNAVAL = not MODO_CARNAVAL
-            mensaje = (
-                "🎭 Modo carnaval ACTIVADO — ganancias x2 · EXP x2!"
-                if MODO_CARNAVAL
-                else "Modo carnaval DESACTIVADO."
-            )
-            return render_template_string(
-                HTML_ADMIN,
-                mensaje=mensaje,
-                mantenimiento=MODO_MANTENIMIENTO,
-                carnaval=MODO_CARNAVAL,
-                registro_activo=REGISTRO_ACTIVO,
-                registro_movimientos=[]
-            )
 
-        if accion_admin == "registro":
             REGISTRO_ACTIVO = not REGISTRO_ACTIVO
             if REGISTRO_ACTIVO:
                 REGISTRO_MOVIMIENTOS = []  # limpiar al activar
@@ -4701,6 +4878,52 @@ def admin():
         carnaval=MODO_CARNAVAL,
         registro_activo=REGISTRO_ACTIVO,
         registro_movimientos=movimientos_para_mostrar
+    )
+
+@app.route("/admin/abuse", methods=["GET", "POST"])
+def admin_abuse():
+    global MODO_CARNAVAL, MODO_OSCURO, MODO_DIVINO
+    usuario = usuario_actual()
+
+    if not usuario:
+        return redirect(url_for("login"))
+
+    if usuario["username"].lower() != "periko":
+        return redirect(url_for("menu"))
+
+    mensaje = ""
+
+    if request.method == "POST":
+        accion_abuse = request.form.get("accion_abuse")
+
+        if accion_abuse == "carnaval":
+            MODO_CARNAVAL = not MODO_CARNAVAL
+            mensaje = (
+                "🎭 Modo carnaval ACTIVADO — ganancias x2 · EXP x2!"
+                if MODO_CARNAVAL
+                else "Modo carnaval DESACTIVADO."
+            )
+        elif accion_abuse == "oscuro":
+            MODO_OSCURO = not MODO_OSCURO
+            mensaje = (
+                "🌑 Modo oscuro ACTIVADO — ganancias x3 · EXP x3!"
+                if MODO_OSCURO
+                else "Modo oscuro DESACTIVADO."
+            )
+        elif accion_abuse == "divino":
+            MODO_DIVINO = not MODO_DIVINO
+            mensaje = (
+                "✨ Modo divino ACTIVADO — ganancias x4 · EXP x4!"
+                if MODO_DIVINO
+                else "Modo divino DESACTIVADO."
+            )
+
+    return render_template_string(
+        HTML_ADMIN_ABUSE,
+        mensaje=mensaje,
+        carnaval=MODO_CARNAVAL,
+        oscuro=MODO_OSCURO,
+        divino=MODO_DIVINO
     )
 
 @app.route("/admin/eliminar", methods=["POST"])
