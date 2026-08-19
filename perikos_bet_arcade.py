@@ -4725,16 +4725,7 @@ def admin():
                 if MODO_MANTENIMIENTO
                 else "Modo mantenimiento DESACTIVADO."
             )
-            return render_template_string(
-                HTML_ADMIN,
-                mensaje=mensaje,
-                mantenimiento=MODO_MANTENIMIENTO,
-                carnaval=MODO_CARNAVAL,
-                registro_activo=REGISTRO_ACTIVO,
-                registro_movimientos=[]
-            )
-
-
+        elif accion_admin == "registro":
             REGISTRO_ACTIVO = not REGISTRO_ACTIVO
             if REGISTRO_ACTIVO:
                 REGISTRO_MOVIMIENTOS = []  # limpiar al activar
@@ -4742,14 +4733,6 @@ def admin():
             else:
                 REGISTRO_MOVIMIENTOS = []
                 mensaje = "📋 Registro de movimientos DESACTIVADO y limpiado."
-            return render_template_string(
-                HTML_ADMIN,
-                mensaje=mensaje,
-                mantenimiento=MODO_MANTENIMIENTO,
-                carnaval=MODO_CARNAVAL,
-                registro_activo=REGISTRO_ACTIVO,
-                registro_movimientos=[]
-            )
 
         if accion_admin == "mensaje_global":
             texto_global = request.form.get(
