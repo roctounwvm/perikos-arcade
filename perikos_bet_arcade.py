@@ -593,6 +593,34 @@ def init_db():
                 ON novedades(creado_en DESC)
             """)
 
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS retos_bj (
+                    id BIGSERIAL PRIMARY KEY,
+                    retidor TEXT NOT NULL,
+                    retado TEXT NOT NULL,
+                    apuesta BIGINT NOT NULL,
+                    estado TEXT NOT NULL DEFAULT 'pendiente',
+                    mazo JSONB,
+                    mano_j1 TEXT[],
+                    mano_j2 TEXT[],
+                    plantado_j1 BOOLEAN NOT NULL DEFAULT FALSE,
+                    plantado_j2 BOOLEAN NOT NULL DEFAULT FALSE,
+                    turno TEXT NOT NULL DEFAULT 'j1',
+                    creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    terminado_en TIMESTAMPTZ
+                )
+            """)
+
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_retos_bj_retado
+                ON retos_bj(retado, estado, creado_en DESC)
+            """)
+
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_retos_bj_retidor
+                ON retos_bj(retidor, estado, creado_en DESC)
+            """)
+
         conn.commit()
 
     finally:
@@ -1783,6 +1811,32 @@ select:focus {
     100% { background-position: 0% 50%; }
 }
 
+/* === PVP BLACKJACK STYLES === */
+.game-card.g-pvp-bj { border-color:#cc00ff; box-shadow:0 0 10px rgba(204,0,255,.3); }
+.game-card.g-pvp-bj:hover { box-shadow:0 0 20px #cc00ff; }
+.pvp-bj-container { text-align:center; padding:10px; }
+.pvp-bj-hands { display:flex; justify-content:center; gap:20px; flex-wrap:wrap; margin:10px 0; }
+.pvp-bj-hand { flex:1; min-width:200px; max-width:350px; border:2px solid #cc00ff; border-radius:8px; padding:12px; background:rgba(204,0,255,.1); }
+.pvp-bj-hand h3 { color:#cc00ff; font-size:9px; margin:0 0 8px; text-transform:uppercase; }
+.pvp-bj-hand .cards { color:#00ffff; font-size:14px; margin:6px 0; letter-spacing:2px; }
+.pvp-bj-hand .score { color:#ffff00; font-size:10px; margin:4px 0; }
+.pvp-bj-hand .status { font-size:7px; margin:4px 0; }
+.pvp-bj-hand .status.standing { color:#00ff66; }
+.pvp-bj-hand .status.busted { color:#ff0033; }
+.pvp-bj-hand .status.turn { color:#cc00ff; animation:blink 1s infinite; }
+.pvp-bj-turn-indicator { color:#cc00ff; font-size:9px; animation:blink 1s infinite; margin:10px 0; }
+.pvp-bj-result { margin:12px 0; padding:10px; border:2px solid #cc00ff; border-radius:8px; }
+.pvp-bj-actions { margin:10px 0; }
+.pvp-bj-actions form { display:inline; margin:0 4px; }
+.pvp-bj-actions button { background:#cc00ff; color:#000; border:2px solid #8800aa; border-bottom:4px solid #660088; padding:8px 16px; font-family:'Press Start 2P',monospace; font-size:8px; cursor:pointer; }
+.pvp-bj-actions button:hover { background:#dd33ff; }
+.pvp-bj-actions button.btn-stand { background:#00cc66; border-color:#009944; border-bottom-color:#007733; color:#000; }
+.pvp-bj-actions button.btn-stand:hover { background:#00dd77; }
+.reto-list { margin:10px 0; text-align:left; }
+.reto-item { border:1px solid #cc00ff44; background:rgba(204,0,255,.05); padding:8px; margin:6px 0; border-radius:4px; }
+.reto-item .reto-info { color:#00ffff; font-size:8px; }
+.reto-item .reto-actions { margin-top:6px; }
+
 </style>
 </head>
 <body>
@@ -2258,6 +2312,11 @@ SELECCIONA UN JUEGO
 <a class="game-card g-crash" href="/juego/crash">
 <span class="game-icon">📈</span>
 <span class="game-name">CRASH ROCKET</span>
+</a>
+
+<a class="game-card g-pvp-bj" href="/retar-bj">
+<span class="game-icon">⚔️</span>
+<span class="game-name">BJ PVP</span>
 </a>
 
 </div>
@@ -6123,6 +6182,633 @@ def health():
             "status": "error",
             "database": str(e)
         }, 500
+
+
+HTML_RETAR_BJ = CSS + """
+<div class="arcade-box">
+
+<h1>⚔️ RETAR BLACKJACK PVP ⚔️</h1>
+
+<div class="badge">
+SALDO: {{ usuario.perikoins }} P
+</div>
+
+<p style="font-size:7px;color:#cc00ff">
+¡RETA A OTRO JUGADOR A BLACKJACK! AMBOS APUESTAN LO MISMO. EL GANADOR SE LLEVA TODO.
+</p>
+
+{% if mensaje %}
+<div class="msg">
+{{ mensaje }}
+</div>
+{% endif %}
+
+<h3 style="font-size:9px;color:#cc00ff;margin:14px 0 8px;">🎯 CREAR NUEVO RETO</h3>
+
+<form method="POST" action="/retar-bj">
+<label>OPONENTE</label>
+<input type="text" name="oponente" placeholder="Nombre del jugador" required style="width:100%;margin:4px 0;">
+
+<label>APUESTA</label>
+<div class="grid">
+{% for cantidad in [10,50,100,250,500,1000,5000] %}
+<button class="chip" name="apuesta" value="{{ cantidad }}" type="submit">{{ cantidad }}</button>
+{% endfor %}
+</div>
+</form>
+
+<h3 style="font-size:9px;color:#00ffcc;margin:14px 0 8px;">📨 RETOS RECIBIDOS</h3>
+{% if retos_recibidos %}
+<div class="reto-list">
+{% for reto in retos_recibidos %}
+<div class="reto-item">
+<div class="reto-info">
+⚔️ <b>{{ reto.retidor }}</b> te reta por <b>{{ reto.apuesta }} P</b>
+</div>
+<div class="reto-actions">
+<form method="POST" action="/aceptar-reto/{{ reto.id }}">
+<button class="btn-aceptar" type="submit">✅ ACEPTAR</button>
+</form>
+<form method="POST" action="/cancelar-reto/{{ reto.id }}">
+<button class="btn-cancelar" type="submit">❌ RECHAZAR</button>
+</form>
+</div>
+</div>
+{% endfor %}
+</div>
+{% else %}
+<p style="font-size:7px;color:#555;">No tienes retos pendientes.</p>
+{% endif %}
+
+<h3 style="font-size:9px;color:#ff6666;margin:14px 0 8px;">📤 TUS RETOS ENVIADOS</h3>
+{% if retos_enviados %}
+<div class="reto-list">
+{% for reto in retos_enviados %}
+<div class="reto-item">
+<div class="reto-info">
+⚔️ Retaste a <b>{{ reto.retado }}</b> por <b>{{ reto.apuesta }} P</b> — {{ reto.estado }}
+</div>
+<div class="reto-actions">
+{% if reto.estado == 'pendiente' %}
+<form method="POST" action="/cancelar-reto/{{ reto.id }}">
+<button class="btn-cancelar" type="submit">❌ CANCELAR</button>
+</form>
+{% endif %}
+</div>
+</div>
+{% endfor %}
+</div>
+{% else %}
+<p style="font-size:7px;color:#555;">No has enviado retos.</p>
+{% endif %}
+
+<a class="link" href="/menu">&lt; VOLVER AL MENU</a>
+
+</div>
+"""
+
+
+HTML_PVP_BJ = CSS + """
+<div class="arcade-box">
+
+<h1>⚔️ BLACKJACK PVP ⚔️</h1>
+
+<div class="badge">
+SALDO: {{ usuario.perikoins }} P &nbsp;|&nbsp; APUESTA: {{ reto.apuesta }} P
+</div>
+
+<p style="font-size:7px;color:#cc00ff">
+{{ reto.retidor }} VS {{ reto.retado }} — BOTE: {{ reto.apuesta * 2 }} P
+</p>
+
+{% if resultado %}
+<div class="pvp-bj-result">
+<div class="win" style="border-color:#cc00ff;">{{ resultado }}</div>
+</div>
+{% endif %}
+
+{% if mensaje %}
+{% if victoria %}
+<div class="win">✨ {{ mensaje }} ✨</div>
+{% else %}
+<div class="msg">{{ mensaje }}</div>
+{% endif %}
+{% endif %}
+
+{% if not resultado %}
+<div class="pvp-bj-hands">
+
+<div class="pvp-bj-hand">
+<h3>{{ reto.retidor }}</h3>
+<div class="cards">{{ cartas_j1 }}</div>
+<div class="score">⭐ {{ valor_j1 }}</div>
+<div class="status {{ estado_j1 }}">{{ texto_j1 }}</div>
+</div>
+
+<div class="pvp-bj-hand">
+<h3>{{ reto.retado }}</h3>
+<div class="cards">{{ cartas_j2 }}</div>
+<div class="score">⭐ {{ valor_j2 }}</div>
+<div class="status {{ estado_j2 }}">{{ texto_j2 }}</div>
+</div>
+
+</div>
+
+{% if es_mi_turno and not terminado %}
+<div class="pvp-bj-turn-indicator">
+🎯 ¡ES TU TURNO! Refresca si no ves cambios.
+</div>
+<div class="pvp-bj-actions">
+<form method="POST" action="/pvp-bj/{{ reto.id }}">
+<input type="hidden" name="accion" value="pedir">
+<button type="submit">🃏 PEDIR CARTA</button>
+</form>
+<form method="POST" action="/pvp-bj/{{ reto.id }}">
+<input type="hidden" name="accion" value="plantarse">
+<button class="btn-stand" type="submit">✋ PLANTARSE</button>
+</form>
+</div>
+{% elif not terminado %}
+<div class="pvp-bj-turn-indicator">
+⏳ ESPERANDO AL OPONENTE... Refresca para ver cambios.
+</div>
+{% endif %}
+
+{% endif %}
+
+<a class="link" href="/retar-bj">&lt; VOLVER A RETOS</a>
+<a class="link" href="/menu">&lt; MENU</a>
+
+</div>
+"""
+
+
+
+def determinar_ganador_pvp(v1, v2, bj1, bj2):
+    if bj1 and not bj2:
+        return 'j1', False, 'BLACKJACK NATURAL!', 3
+    if bj2 and not bj1:
+        return 'j2', False, 'BLACKJACK NATURAL!', 3
+    if bj1 and bj2:
+        return None, True, 'AMBOS BLACKJACK NATURAL', 1
+    if v1 > 21 and v2 > 21:
+        return None, True, 'AMBOS SE PASARON', 1
+    if v1 > 21:
+        return 'j2', False, 'OPONENTE SE PASO', 2
+    if v2 > 21:
+        return 'j1', False, 'OPONENTE SE PASO', 2
+    if v1 > v2:
+        return 'j1', False, 'PUNTOS MAS ALTOS', 2
+    if v2 > v1:
+        return 'j2', False, 'PUNTOS MAS ALTOS', 2
+    return None, True, 'EMPATE', 1
+
+
+def resolver_pvp_bj(reto_id, conn=None):
+    own_conn = conn is None
+    if own_conn:
+        db = get_db()
+        conn = db
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT * FROM retos_bj WHERE id = %s FOR UPDATE", (reto_id,))
+            reto = cur.fetchone()
+            if not reto or reto["estado"] != "jugando":
+                return
+
+            j1 = reto["retidor"]
+            j2 = reto["retado"]
+            apuesta = reto["apuesta"]
+            mano_j1 = reto["mano_j1"] or []
+            mano_j2 = reto["mano_j2"] or []
+            v1 = valor_blackjack(mano_j1)
+            v2 = valor_blackjack(mano_j2)
+            bj1 = v1 == 21 and len(mano_j1) == 2
+            bj2 = v2 == 21 and len(mano_j2) == 2
+
+            ganador, es_empate, motivo, mult = determinar_ganador_pvp(v1, v2, bj1, bj2)
+
+            resultado_texto = (
+                j1 + ": " + " ".join(mano_j1) + " = " + str(v1) + "  |  "
+                + j2 + ": " + " ".join(mano_j2) + " = " + str(v2)
+            )
+
+            if es_empate:
+                cur.execute("UPDATE usuarios SET perikoins = perikoins + %s WHERE username = %s", (apuesta, j1))
+                cur.execute("UPDATE usuarios SET perikoins = perikoins + %s WHERE username = %s", (apuesta, j2))
+                resultado_final = "EMPATE (" + motivo + "). Se devolvieron las apuestas."
+                cur.execute(
+                    "UPDATE retos_bj SET estado='empate', terminado_en=NOW() WHERE id=%s",
+                    (reto_id,)
+                )
+            else:
+                ganador_nombre = j1 if ganador == 'j1' else j2
+                perdedor_nombre = j2 if ganador == 'j1' else j1
+                ganancia = apuesta * mult
+                cur.execute(
+                    "UPDATE usuarios SET perikoins = perikoins + %s, victorias = victorias + 1, max_perikoins = GREATEST(max_perikoins, perikoins + %s) WHERE username = %s",
+                    (ganancia, ganancia, ganador_nombre)
+                )
+                cur.execute(
+                    "UPDATE usuarios SET derrotas = derrotas + 1 WHERE username = %s",
+                    (perdedor_nombre,)
+                )
+                resultado_final = ganador_nombre + " GANA (" + motivo + ")! +" + str(ganancia) + " P"
+                if mult == 3:
+                    resultado_final += " BLACKJACK!"
+                estado_resultado = 'gano_j1' if ganador == 'j1' else 'gano_j2'
+                cur.execute(
+                    "UPDATE retos_bj SET estado=%s, terminado_en=NOW() WHERE id=%s",
+                    (estado_resultado, reto_id)
+                )
+
+            if own_conn:
+                conn.commit()
+
+        return resultado_texto, resultado_final
+
+    except Exception as e:
+        if own_conn:
+            conn.rollback()
+        print("ERROR resolver_pvp_bj: " + str(e))
+        return None
+
+
+@app.route("/retar-bj", methods=["GET", "POST"])
+def retar_bj():
+    usuario = usuario_actual()
+    if not usuario:
+        return redirect(url_for("login"))
+
+    mensaje = ""
+
+    if request.method == "POST":
+        oponente = request.form.get("oponente", "").strip()
+        apuesta_raw = request.form.get("apuesta", "0")
+        apuesta = calcular_apuesta_monto(apuesta_raw, usuario["perikoins"])
+
+        if not oponente:
+            mensaje = "Escribe un nombre de oponente."
+        elif oponente.lower() == usuario["username"].lower():
+            mensaje = "No puedes desafiarte a ti mismo."
+        elif apuesta <= 0 or apuesta > usuario["perikoins"]:
+            mensaje = "Apuesta invalida o saldo insuficiente."
+        else:
+            oponente_user = obtener_usuario(oponente)
+            if not oponente_user:
+                mensaje = "El jugador '" + oponente + "' no existe."
+            elif oponente_user["perikoins"] < apuesta:
+                mensaje = oponente + " no tiene suficientes Perikoins para esta apuesta."
+            else:
+                db = get_db()
+                try:
+                    with db.cursor(cursor_factory=RealDictCursor) as cur:
+                        cur.execute(
+                            "UPDATE usuarios SET perikoins = perikoins - %s WHERE username = %s AND perikoins >= %s",
+                            (apuesta, usuario["username"], apuesta)
+                        )
+                        if cur.rowcount == 0:
+                            db.rollback()
+                            mensaje = "Saldo insuficiente al momento de crear el reto."
+                        else:
+                            cur.execute(
+                                "INSERT INTO retos_bj (retidor, retado, apuesta, estado) VALUES (%s, %s, %s, 'pendiente') RETURNING id",
+                                (usuario["username"], oponente, apuesta)
+                            )
+                            reto_id = cur.fetchone()["id"]
+                            db.commit()
+                            mensaje = "Reto enviado a " + oponente + " por " + str(apuesta) + " P! ID: #" + str(reto_id)
+                except Exception as e:
+                    db.rollback()
+                    mensaje = "Error al crear reto: " + str(e)
+
+        usuario = obtener_usuario(session["user"])
+
+    db = get_db()
+    retos_recibidos = []
+    retos_enviados = []
+    try:
+        with db.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                "SELECT * FROM retos_bj WHERE retado = %s AND estado = 'pendiente' ORDER BY creado_en DESC",
+                (usuario["username"],)
+            )
+            retos_recibidos = cur.fetchall()
+
+            cur.execute(
+                "SELECT * FROM retos_bj WHERE retidor = %s AND estado IN ('pendiente','jugando') ORDER BY creado_en DESC",
+                (usuario["username"],)
+            )
+            retos_enviados = cur.fetchall()
+    except Exception as e:
+        print("Error cargando retos: " + str(e))
+
+    return render_template_string(
+        HTML_RETAR_BJ,
+        usuario=usuario,
+        mensaje=mensaje,
+        retos_recibidos=retos_recibidos,
+        retos_enviados=retos_enviados
+    )
+
+
+@app.route("/aceptar-reto/<int:reto_id>", methods=["POST"])
+def aceptar_reto(reto_id):
+    usuario = usuario_actual()
+    if not usuario:
+        return redirect(url_for("login"))
+
+    db = get_db()
+    try:
+        with db.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT * FROM retos_bj WHERE id = %s FOR UPDATE", (reto_id,))
+            reto = cur.fetchone()
+
+            if not reto or reto["estado"] != "pendiente":
+                db.rollback()
+                return redirect(url_for("retar_bj"))
+
+            if reto["retado"] != usuario["username"]:
+                db.rollback()
+                return redirect(url_for("retar_bj"))
+
+            if usuario["perikoins"] < reto["apuesta"]:
+                db.rollback()
+                return redirect(url_for("retar_bj"))
+
+            cur.execute(
+                "UPDATE usuarios SET perikoins = perikoins - %s WHERE username = %s AND perikoins >= %s",
+                (reto["apuesta"], usuario["username"], reto["apuesta"])
+            )
+            if cur.rowcount == 0:
+                db.rollback()
+                return redirect(url_for("retar_bj"))
+
+            mazo = [
+                rango + palo
+                for rango in ["A","2","3","4","5","6","7","8","9","10","J","Q","K"]
+                for palo in ["\u2660","\u2665","\u2666","\u2663"]
+            ]
+            random.shuffle(mazo)
+
+            mano_j1 = [mazo.pop(), mazo.pop()]
+            mano_j2 = [mazo.pop(), mazo.pop()]
+
+            import json as _json
+            cur.execute(
+                "UPDATE retos_bj SET estado='jugando', mazo=%s::jsonb, mano_j1=%s, mano_j2=%s, turno='j1' WHERE id=%s",
+                (_json.dumps(mazo), mano_j1, mano_j2, reto_id)
+            )
+
+            db.commit()
+            return redirect(url_for("pvp_bj", reto_id=reto_id))
+
+    except Exception as e:
+        db.rollback()
+        print("Error aceptar reto: " + str(e))
+
+    return redirect(url_for("retar_bj"))
+
+
+@app.route("/cancelar-reto/<int:reto_id>", methods=["POST"])
+def cancelar_reto(reto_id):
+    usuario = usuario_actual()
+    if not usuario:
+        return redirect(url_for("login"))
+
+    db = get_db()
+    try:
+        with db.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT * FROM retos_bj WHERE id = %s FOR UPDATE", (reto_id,))
+            reto = cur.fetchone()
+
+            if not reto:
+                db.rollback()
+                return redirect(url_for("retar_bj"))
+
+            if reto["estado"] == "pendiente":
+                if reto["retidor"] == usuario["username"] or reto["retado"] == usuario["username"]:
+                    cur.execute(
+                        "UPDATE usuarios SET perikoins = perikoins + %s WHERE username = %s",
+                        (reto["apuesta"], reto["retidor"])
+                    )
+                    cur.execute(
+                        "UPDATE retos_bj SET estado='cancelado', terminado_en=NOW() WHERE id=%s",
+                        (reto_id,)
+                    )
+                    db.commit()
+                else:
+                    db.rollback()
+            else:
+                db.rollback()
+
+    except Exception as e:
+        db.rollback()
+        print("Error cancelar reto: " + str(e))
+
+    return redirect(url_for("retar_bj"))
+
+
+@app.route("/pvp-bj/<int:reto_id>", methods=["GET", "POST"])
+def pvp_bj(reto_id):
+    usuario = usuario_actual()
+    if not usuario:
+        return redirect(url_for("login"))
+
+    db = get_db()
+    mensaje = ""
+    resultado = None
+    victoria = False
+
+    try:
+        with db.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT * FROM retos_bj WHERE id = %s", (reto_id,))
+            reto = cur.fetchone()
+
+            if not reto:
+                return redirect(url_for("retar_bj"))
+
+            if usuario["username"] not in (reto["retidor"], reto["retado"]):
+                return redirect(url_for("retar_bj"))
+
+            mano_j1 = reto["mano_j1"] or []
+            mano_j2 = reto["mano_j2"] or []
+            v1 = valor_blackjack(mano_j1)
+            v2 = valor_blackjack(mano_j2)
+
+            # If game already finished
+            if reto["estado"] in ("gano_j1", "gano_j2", "empate", "cancelado"):
+                resultado = (
+                    reto["retidor"] + ": " + " ".join(mano_j1) + " = " + str(v1) + "  |  "
+                    + reto["retado"] + ": " + " ".join(mano_j2) + " = " + str(v2)
+                )
+
+                if reto["estado"] == "empate":
+                    mensaje = "EMPATE. Se devolvieron las apuestas."
+                elif reto["estado"] == "gano_j1":
+                    ganador = reto["retidor"]
+                    bj = v1 == 21 and len(mano_j1) == 2
+                    premio = reto["apuesta"] * (3 if bj else 2)
+                    if ganador == usuario["username"]:
+                        victoria = True
+                        mensaje = "GANASTE! +" + str(premio) + " P" + (" BLACKJACK!" if bj else "")
+                    else:
+                        mensaje = ganador + " GANO. Perdiste " + str(reto["apuesta"]) + " P."
+                elif reto["estado"] == "gano_j2":
+                    ganador = reto["retado"]
+                    bj = v2 == 21 and len(mano_j2) == 2
+                    premio = reto["apuesta"] * (3 if bj else 2)
+                    if ganador == usuario["username"]:
+                        victoria = True
+                        mensaje = "GANASTE! +" + str(premio) + " P" + (" BLACKJACK!" if bj else "")
+                    else:
+                        mensaje = ganador + " GANO. Perdiste " + str(reto["apuesta"]) + " P."
+                else:
+                    mensaje = "Reto cancelado."
+
+                terminado = True
+                es_mi_turno = False
+
+                return render_template_string(
+                    HTML_PVP_BJ,
+                    usuario=usuario,
+                    reto=reto,
+                    resultado=resultado,
+                    mensaje=mensaje,
+                    victoria=victoria,
+                    terminado=terminado,
+                    es_mi_turno=es_mi_turno,
+                    cartas_j1=" ".join(mano_j1),
+                    cartas_j2=" ".join(mano_j2),
+                    valor_j1=v1,
+                    valor_j2=v2,
+                    estado_j1="standing",
+                    estado_j2="standing",
+                    texto_j1="Finalizado",
+                    texto_j2="Finalizado"
+                )
+
+            # Game in progress
+            soy_j1 = usuario["username"] == reto["retidor"]
+            mi_campo = "j1" if soy_j1 else "j2"
+            otro_campo = "j2" if soy_j1 else "j1"
+
+            if request.method == "POST" and reto["estado"] == "jugando":
+                accion = request.form.get("accion", "")
+                es_mi_turno = reto["turno"] == mi_campo
+
+                if es_mi_turno and accion in ("pedir", "plantarse"):
+                    cur.execute("SELECT * FROM retos_bj WHERE id = %s FOR UPDATE", (reto_id,))
+                    reto = cur.fetchone()
+
+                    if accion == "pedir":
+                        import json as _json
+                        mazo_data = reto["mazo"]
+                        if isinstance(mazo_data, str):
+                            mazo = _json.loads(mazo_data)
+                        else:
+                            mazo = list(mazo_data)
+                        carta = mazo.pop()
+
+                        mano_actual = list(mano_j1 if mi_campo == "j1" else mano_j2) + [carta]
+                        v_actual = valor_blackjack(mano_actual)
+
+                        cur.execute(
+                            "UPDATE retos_bj SET mano_" + mi_campo + " = array_append(mano_" + mi_campo + ", %s), mazo = %s::jsonb WHERE id = %s",
+                            (carta, _json.dumps(mazo), reto_id)
+                        )
+
+                        if v_actual >= 21:
+                            cur.execute(
+                                "UPDATE retos_bj SET plantado_" + mi_campo + " = TRUE, turno = %s WHERE id = %s",
+                                (otro_campo, reto_id)
+                            )
+                        else:
+                            cur.execute(
+                                "UPDATE retos_bj SET turno = %s WHERE id = %s",
+                                (otro_campo, reto_id)
+                            )
+
+                    elif accion == "plantarse":
+                        cur.execute(
+                            "UPDATE retos_bj SET plantado_" + mi_campo + " = TRUE, turno = %s WHERE id = %s",
+                            (otro_campo, reto_id)
+                        )
+
+                    db.commit()
+
+                    # Reload reto after action
+                    cur.execute("SELECT * FROM retos_bj WHERE id = %s", (reto_id,))
+                    reto = cur.fetchone()
+                    mano_j1 = reto["mano_j1"] or []
+                    mano_j2 = reto["mano_j2"] or []
+                    v1 = valor_blackjack(mano_j1)
+                    v2 = valor_blackjack(mano_j2)
+
+                    # Check if both stood
+                    if reto["plantado_j1"] and reto["plantado_j2"]:
+                        resolver_pvp_bj(reto_id, conn=db)
+                        # Reload after resolution
+                        cur.execute("SELECT * FROM retos_bj WHERE id = %s", (reto_id,))
+                        reto = cur.fetchone()
+
+            # Display current state
+            mano_j1 = reto["mano_j1"] or []
+            mano_j2 = reto["mano_j2"] or []
+            v1 = valor_blackjack(mano_j1)
+            v2 = valor_blackjack(mano_j2)
+
+            soy_j1 = usuario["username"] == reto["retidor"]
+            mi_campo = "j1" if soy_j1 else "j2"
+            es_mi_turno = reto["turno"] == mi_campo and reto["estado"] == "jugando"
+            terminado = reto["estado"] != "jugando"
+
+            def estado_jugador(plantado, valor, es_turno):
+                if plantado:
+                    return "standing", "PLANTADO"
+                if valor > 21:
+                    return "busted", "SE PASO!"
+                if es_turno:
+                    return "turn", "JUGANDO..."
+                return "", "ESPERANDO"
+
+            e1, t1 = estado_jugador(reto["plantado_j1"], v1, reto["turno"] == "j1")
+            e2, t2 = estado_jugador(reto["plantado_j2"], v2, reto["turno"] == "j2")
+
+    except Exception as e:
+        db.rollback()
+        print("Error pvp_bj: " + str(e))
+        mensaje = "Error: " + str(e)
+        e1 = t1 = ""
+        e2 = t2 = ""
+        mano_j1 = []
+        mano_j2 = []
+        v1 = 0
+        v2 = 0
+        terminado = False
+        es_mi_turno = False
+        reto = {"retidor": "?", "retado": "?", "apuesta": 0, "id": reto_id}
+
+    return render_template_string(
+        HTML_PVP_BJ,
+        usuario=usuario,
+        reto=reto,
+        resultado=resultado,
+        mensaje=mensaje,
+        victoria=victoria,
+        terminado=terminado,
+        es_mi_turno=es_mi_turno,
+        cartas_j1=" ".join(mano_j1),
+        cartas_j2=" ".join(mano_j2),
+        valor_j1=v1,
+        valor_j2=v2,
+        estado_j1=e1,
+        estado_j2=e2,
+        texto_j1=t1,
+        texto_j2=t2
+    )
+
+
 
 
 @app.errorhandler(Exception)
