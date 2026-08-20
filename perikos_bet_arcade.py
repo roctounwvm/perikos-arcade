@@ -6272,7 +6272,7 @@ SALDO: {{ usuario.perikoins }} P
 
 
 HTML_PVP_BJ = CSS + """
-<div class="arcade-box">
+<div class="arcade-box pvp-bj-container">
 
 <h1>⚔️ BLACKJACK PVP ⚔️</h1>
 
@@ -6319,7 +6319,7 @@ SALDO: {{ usuario.perikoins }} P &nbsp;|&nbsp; APUESTA: {{ reto.apuesta }} P
 
 {% if es_mi_turno and not terminado %}
 <div class="pvp-bj-turn-indicator">
-🎯 ¡ES TU TURNO! Refresca si no ves cambios.
+🎯 ¡ES TU TURNO!
 </div>
 <div class="pvp-bj-actions">
 <form method="POST" action="/pvp-bj/{{ reto.id }}">
@@ -6333,8 +6333,54 @@ SALDO: {{ usuario.perikoins }} P &nbsp;|&nbsp; APUESTA: {{ reto.apuesta }} P
 </div>
 {% elif not terminado %}
 <div class="pvp-bj-turn-indicator">
-⏳ ESPERANDO AL OPONENTE... Refresca para ver cambios.
+⏳ ESPERANDO AL OPONENTE...
 </div>
+{% endif %}
+
+{# Auto-refresh: si la partida no ha terminado y no es mi turno, recargar cada 4 seg #}
+{% if not terminado and not es_mi_turno %}
+<script>
+(function(){
+  var interval = setInterval(function(){
+    fetch(window.location.href, {headers:{'X-Requested-With':'auto-refresh'}})
+      .then(function(r){ return r.text(); })
+      .then(function(html){
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(html, 'text/html');
+        var newBody = doc.querySelector('.arcade-box');
+        if(newBody){
+          var current = document.querySelector('.arcade-box');
+          if(current) current.innerHTML = newBody.innerHTML;
+        }
+        // Si la partida termino o es mi turno, parar polling
+        var ended = doc.querySelector('.pvp-bj-result');
+        var myTurn = doc.querySelector('.pvp-bj-actions');
+        if(ended || myTurn){
+          clearInterval(interval);
+          if(ended || myTurn) window.location.reload();
+        }
+      })
+      .catch(function(){ /* silencio */ });
+  }, 4000);
+})();
+</script>
+{% elif not terminado and es_mi_turno %}
+{# Mi turno: verificar si sigo siendo mi turno cada 8 seg #}
+<script>
+(function(){
+  setInterval(function(){
+    fetch(window.location.href, {headers:{'X-Requested-With':'auto-refresh'}})
+      .then(function(r){ return r.text(); })
+      .then(function(html){
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(html, 'text/html');
+        var ended = doc.querySelector('.pvp-bj-result');
+        if(ended) window.location.reload();
+      })
+      .catch(function(){ /* silencio */ });
+  }, 8000);
+})();
+</script>
 {% endif %}
 
 {% endif %}
@@ -6368,16 +6414,31 @@ def determinar_ganador_pvp(v1, v2, bj1, bj2):
 
 
 def resolver_pvp_bj(reto_id, conn=None):
+    """Resuelve una partida PvP Blackjack cuando ambos jugadores se han plantado.
+    Si conn es proporcionado, usa esa conexion (la transaccion la maneja el llamador).
+    Si conn es None, crea su propia conexion y hace commit.
+    NO usa FOR UPDATE para evitar deadlocks cuando se llama desde una transaccion
+    que ya tiene el lock.
+    """
     own_conn = conn is None
     if own_conn:
         db = get_db()
         conn = db
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("SELECT * FROM retos_bj WHERE id = %s FOR UPDATE", (reto_id,))
+            # Sin FOR UPDATE: el llamador ya tiene el lock si viene de un POST
+            cur.execute("SELECT * FROM retos_bj WHERE id = %s", (reto_id,))
             reto = cur.fetchone()
             if not reto or reto["estado"] != "jugando":
-                return
+                if own_conn:
+                    conn.rollback()
+                raise ValueError("Reto no encontrado o ya resuelto: estado=%s" % (reto["estado"] if reto else "None"))
+
+            # Verificar que ambos estan plantados
+            if not (reto["plantado_j1"] and reto["plantado_j2"]):
+                if own_conn:
+                    conn.rollback()
+                raise ValueError("Ambos jugadores deben estar plantados para resolver. j1=%s j2=%s" % (reto["plantado_j1"], reto["plantado_j2"]))
 
             j1 = reto["retidor"]
             j2 = reto["retado"]
@@ -6434,7 +6495,7 @@ def resolver_pvp_bj(reto_id, conn=None):
         if own_conn:
             conn.rollback()
         print("ERROR resolver_pvp_bj: " + str(e))
-        return None
+        raise  # Re-lanzar para que el llamador sepa que fallo
 
 
 @app.route("/retar-bj", methods=["GET", "POST"])
@@ -6562,11 +6623,47 @@ def aceptar_reto(reto_id):
             mano_j1 = [mazo.pop(), mazo.pop()]
             mano_j2 = [mazo.pop(), mazo.pop()]
 
+            v1 = valor_blackjack(mano_j1)
+            v2 = valor_blackjack(mano_j2)
+            bj1 = v1 == 21 and len(mano_j1) == 2
+            bj2 = v2 == 21 and len(mano_j2) == 2
+
             import json as _json
-            cur.execute(
-                "UPDATE retos_bj SET estado='jugando', mazo=%s::jsonb, mano_j1=%s, mano_j2=%s, turno='j1' WHERE id=%s",
-                (_json.dumps(mazo), mano_j1, mano_j2, reto_id)
-            )
+
+            # Auto-plantar si un jugador tiene Blackjack natural
+            plantado_j1 = "TRUE" if bj1 else "FALSE"
+            plantado_j2 = "TRUE" if bj2 else "FALSE"
+            turno_inicial = "'j2'" if bj1 and not bj2 else "'j1'"
+
+            # Si ambos tienen Blackjack natural, resolver inmediatamente
+            if bj1 and bj2:
+                ganador, es_empate, motivo, mult = determinar_ganador_pvp(v1, v2, bj1, bj2)
+                if es_empate:
+                    cur.execute("UPDATE usuarios SET perikoins = perikoins + %s WHERE username = %s", (reto["apuesta"], reto["retidor"]))
+                    cur.execute("UPDATE usuarios SET perikoins = perikoins + %s WHERE username = %s", (reto["apuesta"], reto["retado"]))
+                    estado_final = "empate"
+                else:
+                    ganador_nombre = reto["retidor"] if ganador == "j1" else reto["retado"]
+                    perdedor_nombre = reto["retado"] if ganador == "j1" else reto["retidor"]
+                    ganancia = reto["apuesta"] * mult
+                    cur.execute("UPDATE usuarios SET perikoins = perikoins + %s, victorias = victorias + 1 WHERE username = %s", (ganancia, ganador_nombre))
+                    cur.execute("UPDATE usuarios SET derrotas = derrotas + 1 WHERE username = %s", (perdedor_nombre,))
+                    estado_final = "gano_j1" if ganador == "j1" else "gano_j2"
+                cur.execute(
+                    "UPDATE retos_bj SET estado=%s, mazo=%s::jsonb, mano_j1=%s, mano_j2=%s, plantado_j1=TRUE, plantado_j2=TRUE, terminado_en=NOW() WHERE id=%s",
+                    (estado_final, _json.dumps(mazo), mano_j1, mano_j2, reto_id)
+                )
+            elif bj1 or bj2:
+                # Un jugador tiene BJ natural, auto-plantado, turno del otro
+                cur.execute(
+                    "UPDATE retos_bj SET estado='jugando', mazo=%s::jsonb, mano_j1=%s, mano_j2=%s, plantado_j1=" + plantado_j1 + ", plantado_j2=" + plantado_j2 + ", turno=" + turno_inicial + " WHERE id=%s",
+                    (_json.dumps(mazo), mano_j1, mano_j2, reto_id)
+                )
+            else:
+                cur.execute(
+                    "UPDATE retos_bj SET estado='jugando', mazo=%s::jsonb, mano_j1=%s, mano_j2=%s, turno='j1' WHERE id=%s",
+                    (_json.dumps(mazo), mano_j1, mano_j2, reto_id)
+                )
 
             db.commit()
             return redirect(url_for("pvp_bj", reto_id=reto_id))
@@ -6703,40 +6800,54 @@ def pvp_bj(reto_id):
 
             if request.method == "POST" and reto["estado"] == "jugando":
                 accion = request.form.get("accion", "")
-                es_mi_turno = reto["turno"] == mi_campo
-                ya_plantado = reto["plantado_" + mi_campo]
+                es_mi_turno_check = reto["turno"] == mi_campo
+                ya_plantado_check = reto["plantado_" + mi_campo]
 
-                if es_mi_turno and not ya_plantado and accion in ("pedir", "plantarse"):
+                if es_mi_turno_check and not ya_plantado_check and accion in ("pedir", "plantarse"):
+                    # Usar FOR UPDATE para lock durante la accion
                     cur.execute("SELECT * FROM retos_bj WHERE id = %s FOR UPDATE", (reto_id,))
                     reto = cur.fetchone()
 
-                    if accion == "pedir":
+                    # Re-verificar turno y plantado con datos bloqueados
+                    if reto["turno"] != mi_campo or reto["plantado_" + mi_campo]:
+                        # Otro jugador ya actuó concurrentemente, skip
+                        db.rollback()
+                        cur.execute("SELECT * FROM retos_bj WHERE id = %s", (reto_id,))
+                        reto = cur.fetchone()
+                    elif accion == "pedir":
                         import json as _json
                         mazo_data = reto["mazo"]
                         if isinstance(mazo_data, str):
                             mazo = _json.loads(mazo_data)
                         else:
                             mazo = list(mazo_data)
-                        carta = mazo.pop()
-
-                        mano_actual = list(reto["mano_j1"] if mi_campo == "j1" else reto["mano_j2"]) + [carta]
-                        v_actual = valor_blackjack(mano_actual)
-
-                        cur.execute(
-                            "UPDATE retos_bj SET mano_" + mi_campo + " = array_append(mano_" + mi_campo + ", %s), mazo = %s::jsonb WHERE id = %s",
-                            (carta, _json.dumps(mazo), reto_id)
-                        )
-
-                        if v_actual >= 21:
+                        if not mazo:
+                            # Mazo vacio, forzar plantarse
                             cur.execute(
                                 "UPDATE retos_bj SET plantado_" + mi_campo + " = TRUE, turno = %s WHERE id = %s",
                                 (otro_campo, reto_id)
                             )
                         else:
+                            carta = mazo.pop()
+
+                            mano_actual = list(reto["mano_j1"] if mi_campo == "j1" else reto["mano_j2"]) + [carta]
+                            v_actual = valor_blackjack(mano_actual)
+
                             cur.execute(
-                                "UPDATE retos_bj SET turno = %s WHERE id = %s",
-                                (otro_campo, reto_id)
+                                "UPDATE retos_bj SET mano_" + mi_campo + " = array_append(mano_" + mi_campo + ", %s), mazo = %s::jsonb WHERE id = %s",
+                                (carta, _json.dumps(mazo), reto_id)
                             )
+
+                            if v_actual >= 21:
+                                cur.execute(
+                                    "UPDATE retos_bj SET plantado_" + mi_campo + " = TRUE, turno = %s WHERE id = %s",
+                                    (otro_campo, reto_id)
+                                )
+                            else:
+                                cur.execute(
+                                    "UPDATE retos_bj SET turno = %s WHERE id = %s",
+                                    (otro_campo, reto_id)
+                                )
 
                     elif accion == "plantarse":
                         cur.execute(
@@ -6744,15 +6855,42 @@ def pvp_bj(reto_id):
                             (otro_campo, reto_id)
                         )
 
-                    # Check if both stood BEFORE commit
-                    cur.execute("SELECT * FROM retos_bj WHERE id = %s", (reto_id,))
-                    reto_check = cur.fetchone()
-                    if reto_check["plantado_j1"] and reto_check["plantado_j2"]:
-                        resolver_pvp_bj(reto_id, conn=db)
+                    # Verificar si ambos se plantaron ANTES del commit
+                    # Leer directamente sin FOR UPDATE ya que tenemos el lock
+                    cur.execute("SELECT plantado_j1, plantado_j2 FROM retos_bj WHERE id = %s", (reto_id,))
+                    check = cur.fetchone()
+                    if check and check["plantado_j1"] and check["plantado_j2"]:
+                        try:
+                            resolver_pvp_bj(reto_id, conn=db)
+                        except Exception as e_resolve:
+                            # Si resolver falla, no commitear la resolucion pero
+                            # si commitear la accion del jugador
+                            print("WARN resolver_pvp_bj fallo en POST: " + str(e_resolve))
+                            # Fallback: resolver inline directamente
+                            cur.execute("SELECT * FROM retos_bj WHERE id = %s", (reto_id,))
+                            reto_fb = cur.fetchone()
+                            if reto_fb and reto_fb["estado"] == "jugando":
+                                v1_fb = valor_blackjack(reto_fb["mano_j1"] or [])
+                                v2_fb = valor_blackjack(reto_fb["mano_j2"] or [])
+                                bj1_fb = v1_fb == 21 and len(reto_fb["mano_j1"] or []) == 2
+                                bj2_fb = v2_fb == 21 and len(reto_fb["mano_j2"] or []) == 2
+                                gan_fb, emp_fb, mot_fb, mult_fb = determinar_ganador_pvp(v1_fb, v2_fb, bj1_fb, bj2_fb)
+                                if emp_fb:
+                                    cur.execute("UPDATE usuarios SET perikoins = perikoins + %s WHERE username = %s", (reto_fb["apuesta"], reto_fb["retidor"]))
+                                    cur.execute("UPDATE usuarios SET perikoins = perikoins + %s WHERE username = %s", (reto_fb["apuesta"], reto_fb["retado"]))
+                                    cur.execute("UPDATE retos_bj SET estado='empate', terminado_en=NOW() WHERE id=%s", (reto_id,))
+                                else:
+                                    g_nombre = reto_fb["retidor"] if gan_fb == 'j1' else reto_fb["retado"]
+                                    p_nombre = reto_fb["retado"] if gan_fb == 'j1' else reto_fb["retidor"]
+                                    g_ganancia = reto_fb["apuesta"] * mult_fb
+                                    cur.execute("UPDATE usuarios SET perikoins = perikoins + %s, victorias = victorias + 1, max_perikoins = GREATEST(max_perikoins, perikoins + %s) WHERE username = %s", (g_ganancia, g_ganancia, g_nombre))
+                                    cur.execute("UPDATE usuarios SET derrotas = derrotas + 1 WHERE username = %s", (p_nombre,))
+                                    est_fb = 'gano_j1' if gan_fb == 'j1' else 'gano_j2'
+                                    cur.execute("UPDATE retos_bj SET estado=%s, terminado_en=NOW() WHERE id=%s", (est_fb, reto_id))
 
                     db.commit()
 
-                    # Reload reto after action
+                    # Reload reto despues de la accion
                     cur.execute("SELECT * FROM retos_bj WHERE id = %s", (reto_id,))
                     reto = cur.fetchone()
 
@@ -6764,7 +6902,8 @@ def pvp_bj(reto_id):
 
             soy_j1 = usuario["username"] == reto["retidor"]
             mi_campo = "j1" if soy_j1 else "j2"
-            es_mi_turno = reto["turno"] == mi_campo and reto["estado"] == "jugando"
+            mi_plantado = reto["plantado_" + mi_campo]
+            es_mi_turno = reto["turno"] == mi_campo and reto["estado"] == "jugando" and not mi_plantado
             terminado = reto["estado"] != "jugando"
 
             # Safety: si ambos se plantaron pero la partida no se resolvio, resolver ahora
@@ -6775,10 +6914,37 @@ def pvp_bj(reto_id):
                 except Exception as e_res:
                     db.rollback()
                     print("Error resolving stuck pvp: " + str(e_res))
+                    # Fallback inline
+                    try:
+                        with db.cursor(cursor_factory=RealDictCursor) as cur_fb:
+                            cur_fb.execute("SELECT * FROM retos_bj WHERE id = %s", (reto_id,))
+                            reto_fb2 = cur_fb.fetchone()
+                            if reto_fb2 and reto_fb2["estado"] == "jugando":
+                                v1_fb2 = valor_blackjack(reto_fb2["mano_j1"] or [])
+                                v2_fb2 = valor_blackjack(reto_fb2["mano_j2"] or [])
+                                bj1_fb2 = v1_fb2 == 21 and len(reto_fb2["mano_j1"] or []) == 2
+                                bj2_fb2 = v2_fb2 == 21 and len(reto_fb2["mano_j2"] or []) == 2
+                                gan2, emp2, mot2, mult2 = determinar_ganador_pvp(v1_fb2, v2_fb2, bj1_fb2, bj2_fb2)
+                                if emp2:
+                                    cur_fb.execute("UPDATE usuarios SET perikoins = perikoins + %s WHERE username = %s", (reto_fb2["apuesta"], reto_fb2["retidor"]))
+                                    cur_fb.execute("UPDATE usuarios SET perikoins = perikoins + %s WHERE username = %s", (reto_fb2["apuesta"], reto_fb2["retado"]))
+                                    cur_fb.execute("UPDATE retos_bj SET estado='empate', terminado_en=NOW() WHERE id=%s", (reto_id,))
+                                else:
+                                    gn2 = reto_fb2["retidor"] if gan2 == 'j1' else reto_fb2["retado"]
+                                    pn2 = reto_fb2["retado"] if gan2 == 'j1' else reto_fb2["retidor"]
+                                    gg2 = reto_fb2["apuesta"] * mult2
+                                    cur_fb.execute("UPDATE usuarios SET perikoins = perikoins + %s, victorias = victorias + 1, max_perikoins = GREATEST(max_perikoins, perikoins + %s) WHERE username = %s", (gg2, gg2, gn2))
+                                    cur_fb.execute("UPDATE usuarios SET derrotas = derrotas + 1 WHERE username = %s", (pn2,))
+                                    est2 = 'gano_j1' if gan2 == 'j1' else 'gano_j2'
+                                    cur_fb.execute("UPDATE retos_bj SET estado=%s, terminado_en=NOW() WHERE id=%s", (est2, reto_id))
+                                db.commit()
+                    except Exception as e_fb2:
+                        db.rollback()
+                        print("Error fallback resolve: " + str(e_fb2))
                 cur.execute("SELECT * FROM retos_bj WHERE id = %s", (reto_id,))
                 reto = cur.fetchone()
                 terminado = reto["estado"] != "jugando"
-                es_mi_turno = False
+                es_mi_turno = False  # Juego terminado, nadie juega
 
             def estado_jugador(plantado, valor, es_turno, otro_plantado, estado_partida):
                 if estado_partida != "jugando":
@@ -6789,12 +6955,12 @@ def pvp_bj(reto_id):
                     return "standing", "PLANTADO — ESPERANDO"
                 if valor > 21:
                     return "busted", "SE PASO!"
-                if es_turno:
+                if es_turno and not plantado:
                     return "turn", "TU TURNO"
                 return "", "ESPERANDO"
 
-            e1, t1 = estado_jugador(reto["plantado_j1"], v1, reto["turno"] == "j1", reto["plantado_j2"], reto["estado"])
-            e2, t2 = estado_jugador(reto["plantado_j2"], v2, reto["turno"] == "j2", reto["plantado_j1"], reto["estado"])
+            e1, t1 = estado_jugador(reto["plantado_j1"], v1, reto["turno"] == "j1" and not reto["plantado_j1"], reto["plantado_j2"], reto["estado"])
+            e2, t2 = estado_jugador(reto["plantado_j2"], v2, reto["turno"] == "j2" and not reto["plantado_j2"], reto["plantado_j1"], reto["estado"])
 
     except Exception as e:
         db.rollback()
