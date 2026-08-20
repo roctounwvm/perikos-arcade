@@ -1836,6 +1836,7 @@ select:focus {
 .reto-item { border:1px solid #cc00ff44; background:rgba(204,0,255,.05); padding:8px; margin:6px 0; border-radius:4px; }
 .reto-item .reto-info { color:#00ffff; font-size:8px; }
 .reto-item .reto-actions { margin-top:6px; }
+@keyframes parpadeo { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
 
 </style>
 </head>
@@ -6244,15 +6245,17 @@ SALDO: {{ usuario.perikoins }} P
 {% if retos_enviados %}
 <div class="reto-list">
 {% for reto in retos_enviados %}
-<div class="reto-item">
+<div class="reto-item"{% if reto.estado == 'jugando' %} style="border-color:#cc00ff;background:linear-gradient(90deg,#1a0022 0%,#33004d 100%);box-shadow:0 0 12px #cc00ff55;"{% endif %}>
 <div class="reto-info">
-⚔️ Retaste a <b>{{ reto.retado }}</b> por <b>{{ reto.apuesta }} P</b> — {{ reto.estado }}
+⚔️ Retaste a <b>{{ reto.retado }}</b> por <b>{{ reto.apuesta }} P</b> — {% if reto.estado == 'jugando' %}<span style="color:#00ff88;font-size:8px;animation:parpadeo 1s infinite;">¡ACEPTADO! EN JUEGO ▶</span>{% else %}{{ reto.estado }}{% endif %}
 </div>
 <div class="reto-actions">
 {% if reto.estado == 'pendiente' %}
 <form method="POST" action="/cancelar-reto/{{ reto.id }}">
 <button class="btn-cancelar" type="submit">❌ CANCELAR</button>
 </form>
+{% elif reto.estado == 'jugando' %}
+<a class="btn" style="background:#cc00ff;color:#000;font-size:8px;padding:6px 14px;display:inline-block;text-decoration:none;border:2px solid #8800aa;border-bottom:4px solid #660088;font-family:'Press Start 2P',monospace;" href="/pvp-bj/{{ reto.id }}">⚔️ ENTRAR</a>
 {% endif %}
 </div>
 </div>
@@ -6502,6 +6505,11 @@ def retar_bj():
             retos_enviados = cur.fetchall()
     except Exception as e:
         print("Error cargando retos: " + str(e))
+
+    # Auto-redirigir si el retador tiene un reto en estado 'jugando'
+    for reto in retos_enviados:
+        if reto["estado"] == "jugando":
+            return redirect(url_for("pvp_bj", reto_id=reto["id"]))
 
     return render_template_string(
         HTML_RETAR_BJ,
