@@ -6704,8 +6704,9 @@ def pvp_bj(reto_id):
             if request.method == "POST" and reto["estado"] == "jugando":
                 accion = request.form.get("accion", "")
                 es_mi_turno = reto["turno"] == mi_campo
+                ya_plantado = reto["plantado_" + mi_campo]
 
-                if es_mi_turno and accion in ("pedir", "plantarse"):
+                if es_mi_turno and not ya_plantado and accion in ("pedir", "plantarse"):
                     cur.execute("SELECT * FROM retos_bj WHERE id = %s FOR UPDATE", (reto_id,))
                     reto = cur.fetchone()
 
@@ -6718,7 +6719,7 @@ def pvp_bj(reto_id):
                             mazo = list(mazo_data)
                         carta = mazo.pop()
 
-                        mano_actual = list(mano_j1 if mi_campo == "j1" else mano_j2) + [carta]
+                        mano_actual = list(reto["mano_j1"] if mi_campo == "j1" else reto["mano_j2"]) + [carta]
                         v_actual = valor_blackjack(mano_actual)
 
                         cur.execute(
@@ -6743,22 +6744,17 @@ def pvp_bj(reto_id):
                             (otro_campo, reto_id)
                         )
 
+                    # Check if both stood BEFORE commit
+                    cur.execute("SELECT * FROM retos_bj WHERE id = %s", (reto_id,))
+                    reto_check = cur.fetchone()
+                    if reto_check["plantado_j1"] and reto_check["plantado_j2"]:
+                        resolver_pvp_bj(reto_id, conn=db)
+
                     db.commit()
 
                     # Reload reto after action
                     cur.execute("SELECT * FROM retos_bj WHERE id = %s", (reto_id,))
                     reto = cur.fetchone()
-                    mano_j1 = reto["mano_j1"] or []
-                    mano_j2 = reto["mano_j2"] or []
-                    v1 = valor_blackjack(mano_j1)
-                    v2 = valor_blackjack(mano_j2)
-
-                    # Check if both stood
-                    if reto["plantado_j1"] and reto["plantado_j2"]:
-                        resolver_pvp_bj(reto_id, conn=db)
-                        # Reload after resolution
-                        cur.execute("SELECT * FROM retos_bj WHERE id = %s", (reto_id,))
-                        reto = cur.fetchone()
 
             # Display current state
             mano_j1 = reto["mano_j1"] or []
@@ -6771,17 +6767,34 @@ def pvp_bj(reto_id):
             es_mi_turno = reto["turno"] == mi_campo and reto["estado"] == "jugando"
             terminado = reto["estado"] != "jugando"
 
-            def estado_jugador(plantado, valor, es_turno):
+            # Safety: si ambos se plantaron pero la partida no se resolvio, resolver ahora
+            if reto["plantado_j1"] and reto["plantado_j2"] and reto["estado"] == "jugando":
+                try:
+                    resolver_pvp_bj(reto_id, conn=db)
+                    db.commit()
+                except Exception as e_res:
+                    db.rollback()
+                    print("Error resolving stuck pvp: " + str(e_res))
+                cur.execute("SELECT * FROM retos_bj WHERE id = %s", (reto_id,))
+                reto = cur.fetchone()
+                terminado = reto["estado"] != "jugando"
+                es_mi_turno = False
+
+            def estado_jugador(plantado, valor, es_turno, otro_plantado, estado_partida):
+                if estado_partida != "jugando":
+                    return "standing", "FINALIZADO"
+                if plantado and otro_plantado:
+                    return "standing", "RESOLVIENDO..."
                 if plantado:
-                    return "standing", "PLANTADO"
+                    return "standing", "PLANTADO — ESPERANDO"
                 if valor > 21:
                     return "busted", "SE PASO!"
                 if es_turno:
-                    return "turn", "JUGANDO..."
+                    return "turn", "TU TURNO"
                 return "", "ESPERANDO"
 
-            e1, t1 = estado_jugador(reto["plantado_j1"], v1, reto["turno"] == "j1")
-            e2, t2 = estado_jugador(reto["plantado_j2"], v2, reto["turno"] == "j2")
+            e1, t1 = estado_jugador(reto["plantado_j1"], v1, reto["turno"] == "j1", reto["plantado_j2"], reto["estado"])
+            e2, t2 = estado_jugador(reto["plantado_j2"], v2, reto["turno"] == "j2", reto["plantado_j1"], reto["estado"])
 
     except Exception as e:
         db.rollback()
